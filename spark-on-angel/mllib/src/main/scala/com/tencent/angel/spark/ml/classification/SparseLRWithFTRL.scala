@@ -22,11 +22,10 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
 import com.tencent.angel.spark.context.{AngelPSContext, PSContext}
-import com.tencent.angel.spark.linalg.{BLAS, OneHotVector, SparseVector}
+import com.tencent.angel.spark.linalg.{BLAS, OneHotVector, SparseVector, Vector}
 import com.tencent.angel.spark.ml.optimize.FTRL
 import com.tencent.angel.spark.ml.util.{ArgsUtil, DataLoader}
 import com.tencent.angel.spark.models.vector.cache.PullMan
-import com.tencent.angel.utils.MurmurHash3
 
 object SparseLRWithFTRL {
 
@@ -34,6 +33,7 @@ object SparseLRWithFTRL {
     val params = ArgsUtil.parse(args)
     val mode = params.getOrElse("mode", "yarn-cluster")
     val input = params("input")
+    val modelPath = params("modelPath")
     val partitionNum = params.getOrElse("partitionNum", "10").toInt
     val sampleRate = params.getOrElse("sampleRate", "1.0").toDouble
     val validateFaction = params.getOrElse("validateFaction", "0.3").toDouble
@@ -56,27 +56,59 @@ object SparseLRWithFTRL {
 
     PSContext.getOrCreate(spark.sparkContext)
 
-    val tempInstances = DataLoader.loadOneHotInstance(input, partitionNum, sampleRate, -1).rdd
-      .map { row =>
-        Tuple2(row.getAs[scala.collection.mutable.WrappedArray[Long]](1).toArray, row.getString(0).toDouble)
-      }.map { case (feat, label) =>
-        val hashed = feat.map { index =>
-          val bytes = f"$index%4d".getBytes
-          MurmurHash3.murmurhash3_x64_64(bytes, bytes.length, 41)
+    val isOneHot = DataLoader.isOneHotType(input, sampleRate, partitionNum)
+
+    val (instances, dim) = if(!isOneHot) {
+
+      // SparseVector
+      val tempInstances = DataLoader.loadSparseInstance(input, partitionNum, sampleRate)
+        .map{case (feat, label) =>
+          val featAddInt =  Array((0L, 1.0)) ++ feat
+          (featAddInt, label)
         }
-        //(0L +: hashed, label)
-        (hashed, label)
+
+      val dim = if (pDim > 0) {
+        pDim
+      } else {
+        tempInstances.flatMap { case (feat, label) =>
+          feat.map(_._1).distinct
+        }.distinct().count()
+      }
+      println(s"feat number: $dim")
+
+      val svInstances = tempInstances.map { case (feat, label) =>
+        val featV: Vector = new SparseVector(dim.toLong, feat)
+        (featV, label)
       }
 
-    val dim = if (pDim > 0) {
-      pDim
+      (svInstances, dim)
     } else {
-      tempInstances.flatMap { case (feat, label) => feat.distinct}.distinct().count()
+        // OneHotVector
+        val tempInstances = DataLoader.loadOneHotInstance(input, partitionNum, sampleRate).rdd
+          .map { row =>
+            Tuple2(row.getAs[scala.collection.mutable.WrappedArray[Long]](1).toArray, row.getString(0).toDouble)
+          }.map { case (feat, label) =>
+          (0L +: feat, label)
+        }
+
+        val dim = if (pDim > 0) {
+          pDim
+        } else {
+          tempInstances.flatMap { case (feat, label) =>
+            feat.distinct
+          }.distinct().count()
+        }
+
+        println(s"feat number: $dim")
+
+        val ovInstances = tempInstances.map { case (feat, label) =>
+          val featV: Vector = new OneHotVector(dim.toLong, feat)
+          (featV, label)
+        }
+
+        (ovInstances, dim)
     }
 
-    println(s"feat number: $dim")
-
-    val instances = tempInstances.map { case (feat, label) => (new OneHotVector(dim, feat), label) }
     instances.cache()
     val sampleNum = instances.count()
     val posSamples = instances.filter(_._2 == 1.0).count()
@@ -84,11 +116,14 @@ object SparseLRWithFTRL {
     println(s"total count: $sampleNum posSample: $posSamples negSamples: $negSamples")
     require(posSamples + negSamples == sampleNum, "labels must be 0 or 1")
 
-    train(instances, sampleNum, dim, epoch, batchSize, lambda1, lambda2, alpha, beta, validateFaction)
+    val model = train(instances, sampleNum, dim, epoch, batchSize, lambda1, lambda2, alpha, beta, validateFaction)
+    model.save(modelPath)
+
+    instances.unpersist()
   }
 
   def train(
-      instances: RDD[(OneHotVector, Double)],
+      instances: RDD[(Vector, Double)],
       sampleNum: Long,
       dim: Long,
       epoch: Int,
@@ -97,7 +132,7 @@ object SparseLRWithFTRL {
       lambda2: Double,
       alpha: Double,
       beta: Double,
-      validateFaction: Double): Unit = {
+      validateFaction: Double): SparseLRModel = {
 
     val (trainSet, validateSet) = if (validateFaction > 0 && validateFaction < 1.0) {
       val rdds = instances.randomSplit(Array(1 - validateFaction, validateFaction))
@@ -114,11 +149,13 @@ object SparseLRWithFTRL {
       val tempRDD = trainSet.mapPartitions { iter =>
         var batchId = 0
         val instances = iter.toArray
+
         instances.sliding(batchSize, batchSize)
           .map { batch =>
+
             val batchLoss = ftrl.optimize(batch, calcGradientLoss)
             if (batchId % 10 == 0) {
-               println(s"epoch $epochId batchId: $batchId loss $batchLoss")
+              println(s"epoch $epochId batchId: $batchId loss $batchLoss")
             }
             batchId += 1
             batchLoss
@@ -138,13 +175,16 @@ object SparseLRWithFTRL {
         println(s"epoch: $epochId validate global loss: $validateLoss auc: $validateAuc")
       }
     }
+
+    SparseLRModel(ftrl.weight)
   }
 
 
-  def evaluate(evalRDD: RDD[(OneHotVector, Double)], lrModel: SparseLRModel): (Double, Double) = {
+  def evaluate(evalRDD: RDD[(Vector, Double)], lrModel: SparseLRModel): (Double, Double) = {
 
     val tempRDD = evalRDD.mapPartitions { iter =>
       val localW = lrModel.w.toCache.pullFromCache().toSparse
+
       iter.map { case (feature, label) =>
         val loss = calcLoss(localW, label, feature)
         val prob = lrModel.predict(feature, localW)
@@ -161,7 +201,7 @@ object SparseLRWithFTRL {
     (loss, auc)
   }
 
-  private def calcLoss(w: SparseVector, label: Double, feature: OneHotVector): Double = {
+  private def calcLoss(w: SparseVector, label: Double, feature: Vector): Double = {
     val margin = -1 * BLAS.dot(w, feature)
     val loss = if (label > 0) {
       math.log1p(math.exp(margin))
@@ -171,19 +211,18 @@ object SparseLRWithFTRL {
     loss
   }
 
-  private def calcGradientLoss(w: SparseVector, label: Double, feature: OneHotVector): (SparseVector, Double) = {
+  private def calcGradientLoss(w: SparseVector, label: Double, feature: Vector): (SparseVector, Double) = {
     val margin = -1 * BLAS.dot(w, feature)
     val gradientMultiplier = 1.0 / (1.0 + math.exp(margin)) - label
-    val grad = new SparseVector(w.length, feature.indices.length)
-    feature.indices.foreach { fId =>
-      grad.put(fId, gradientMultiplier)
-    }
+    val grad = new SparseVector(w.length)
+    BLAS.axpy(gradientMultiplier, feature, grad)
 
     val loss = if (label > 0) {
       math.log1p(math.exp(margin))
     } else {
       math.log1p(math.exp(margin)) - margin
     }
+
     (grad, loss)
   }
 
