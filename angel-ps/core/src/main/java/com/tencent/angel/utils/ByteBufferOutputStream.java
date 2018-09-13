@@ -1,36 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
 
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package com.tencent.angel.utils;
 
@@ -53,7 +37,9 @@ public class ByteBufferOutputStream extends OutputStream {
     reset();
   }
 
-  /** Returns all data written and resets the stream to be empty. */
+  /**
+   * Returns all data written and resets the stream to be empty.
+   */
   public List<ByteBuffer> getBufferList() {
     List<ByteBuffer> result = buffers;
     reset();
@@ -62,7 +48,9 @@ public class ByteBufferOutputStream extends OutputStream {
     return result;
   }
 
-  /** Prepend a list of ByteBuffers to this stream. */
+  /**
+   * Prepend a list of ByteBuffers to this stream.
+   */
   public void prepend(List<ByteBuffer> lists) {
     for (ByteBuffer buffer : lists) {
       buffer.position(buffer.limit());
@@ -70,7 +58,9 @@ public class ByteBufferOutputStream extends OutputStream {
     buffers.addAll(0, lists);
   }
 
-  /** Append a list of ByteBuffers to this stream. */
+  /**
+   * Append a list of ByteBuffers to this stream.
+   */
   public void append(List<ByteBuffer> lists) {
     for (ByteBuffer buffer : lists) {
       buffer.position(buffer.limit());
@@ -87,8 +77,7 @@ public class ByteBufferOutputStream extends OutputStream {
     buffers.add(buffer);
   }
 
-  @Override
-  public void write(int b) {
+  @Override public void write(int b) {
     ByteBuffer buffer = buffers.get(buffers.size() - 1);
     if (buffer.remaining() < 1) {
       buffer = ByteBuffer.allocate(BUFFER_SIZE);
@@ -97,8 +86,7 @@ public class ByteBufferOutputStream extends OutputStream {
     buffer.put((byte) b);
   }
 
-  @Override
-  public void write(byte[] b, int off, int len) {
+  @Override public void write(byte[] b, int off, int len) {
     ByteBuffer buffer = buffers.get(buffers.size() - 1);
     int remaining = buffer.remaining();
     while (len > remaining) {
@@ -112,7 +100,9 @@ public class ByteBufferOutputStream extends OutputStream {
     buffer.put(b, off, len);
   }
 
-  /** Add a buffer to the output without copying, if possible. */
+  /**
+   * Add a buffer to the output without copying, if possible.
+   */
   public void writeBuffer(ByteBuffer buffer) throws IOException {
     if (buffer.remaining() < BUFFER_SIZE) {
       write(buffer.array(), buffer.position(), buffer.remaining());

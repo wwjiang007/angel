@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
@@ -32,7 +34,7 @@ import java.io.IOException;
 /**
  * use new mr2 api
  *
- * @param <KEY> key type
+ * @param <KEY>   key type
  * @param <VALUE> value type
  */
 public class DFSStorageNewAPI<KEY, VALUE> {
@@ -48,25 +50,22 @@ public class DFSStorageNewAPI<KEY, VALUE> {
     return split;
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void initReader() throws IOException {
+  @SuppressWarnings({"rawtypes", "unchecked"}) public void initReader() throws IOException {
     try {
       Configuration conf = WorkerContext.get().getConf();
       String inputFormatClassName =
-          conf.get(AngelConf.ANGEL_INPUTFORMAT_CLASS,
-              AngelConf.DEFAULT_ANGEL_INPUTFORMAT_CLASS);
+        conf.get(AngelConf.ANGEL_INPUTFORMAT_CLASS, AngelConf.DEFAULT_ANGEL_INPUTFORMAT_CLASS);
 
       Class<? extends org.apache.hadoop.mapreduce.InputFormat> inputFormatClass =
-          (Class<? extends org.apache.hadoop.mapreduce.InputFormat>) Class
-              .forName(inputFormatClassName);
+        (Class<? extends org.apache.hadoop.mapreduce.InputFormat>) Class
+          .forName(inputFormatClassName);
 
       org.apache.hadoop.mapreduce.InputFormat inputFormat =
-          ReflectionUtils.newInstance(inputFormatClass,
-              new JobConf(conf));
+        ReflectionUtils.newInstance(inputFormatClass, new JobConf(conf));
 
       MRTaskContext taskContext = new MRTaskContext(conf);
       org.apache.hadoop.mapreduce.RecordReader<KEY, VALUE> recordReader =
-          inputFormat.createRecordReader(split, taskContext);
+        inputFormat.createRecordReader(split, taskContext);
 
       recordReader.initialize(split, taskContext);
       setReader(new DFSReaderNewAPI(recordReader));
@@ -91,34 +90,28 @@ public class DFSStorageNewAPI<KEY, VALUE> {
       this.innerReader = reader;
     }
 
-    @Override
-    public boolean nextKeyValue() throws IOException, InterruptedException {
+    @Override public boolean nextKeyValue() throws IOException, InterruptedException {
       return innerReader.nextKeyValue();
     }
 
-    @Override
-    public KEY getCurrentKey() throws IOException, InterruptedException {
+    @Override public KEY getCurrentKey() throws IOException, InterruptedException {
       return innerReader.getCurrentKey();
     }
 
-    @Override
-    public VALUE getCurrentValue() throws IOException, InterruptedException {
+    @Override public VALUE getCurrentValue() throws IOException, InterruptedException {
       return innerReader.getCurrentValue();
     }
 
-    @Override
-    public void reset() throws IOException {
+    @Override public void reset() throws IOException {
       innerReader.close();
       initReader();
     }
 
-    @Override
-    public void close() throws IOException {
+    @Override public void close() throws IOException {
       innerReader.close();
     }
 
-    @Override
-    public float getProgress() {
+    @Override public float getProgress() {
       try {
         return innerReader.getProgress();
       } catch (IOException | InterruptedException e) {

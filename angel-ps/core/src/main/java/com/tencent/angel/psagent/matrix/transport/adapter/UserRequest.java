@@ -1,85 +1,93 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
 
+
 package com.tencent.angel.psagent.matrix.transport.adapter;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The request of application layer.
  */
 public abstract class UserRequest {
-  /** request type */
+  /**
+   * Request id
+   */
+  private final int requestId;
+
+  /**
+   * request type
+   */
   protected final UserRequestType type;
 
-  /** clock value */
-  protected final int clock;
+  /**
+   * Request id generator
+   */
+  private static final AtomicInteger idGen = new AtomicInteger(0);
 
   /**
    * Create a new UserRequest
    *
    * @param type request type
-   * @param clock clock value
    */
-  public UserRequest(UserRequestType type, int clock) {
+  public UserRequest(UserRequestType type) {
+    this.requestId = idGen.incrementAndGet();
     this.type = type;
-    this.clock = clock;
   }
 
   /**
    * Get request type
-   * 
+   *
    * @return UserRequestType request type
    */
   public UserRequestType getType() {
     return type;
   }
 
+
   /**
-   * Get clock value
-   * 
-   * @return int clock value
+   * Get request id
+   *
+   * @return request id
    */
-  public int getClock() {
-    return clock;
+  public int getRequestId() {
+    return requestId;
   }
 
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + clock;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    return result;
+  @Override public String toString() {
+    return "UserRequest{" + "requestId=" + requestId + ", type=" + type + '}';
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
+  @Override public boolean equals(Object o) {
+    if (this == o)
       return true;
-    if (obj == null)
+    if (o == null || getClass() != o.getClass())
       return false;
-    if (getClass() != obj.getClass())
+
+    UserRequest that = (UserRequest) o;
+
+    if (requestId != that.requestId)
       return false;
-    UserRequest other = (UserRequest) obj;
-    if (clock != other.clock)
-      return false;
-    return type == other.type;
+    return type == that.type;
   }
 
-  @Override
-  public String toString() {
-    return "UserRequest [type=" + type + ", clock=" + clock + "]";
+  @Override public int hashCode() {
+    int result = requestId;
+    result = 31 * result + (type != null ? type.hashCode() : 0);
+    return result;
   }
 }

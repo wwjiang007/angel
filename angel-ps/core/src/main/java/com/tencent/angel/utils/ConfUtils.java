@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.utils;
 
@@ -37,7 +39,7 @@ public class ConfUtils {
   private static final Log LOG = LogFactory.getLog(AngelRunJar.class);
   private static final String angelSysConfFile = "angel-site.xml";
 
-  public static Configuration initConf(String [] cmdArgs) throws Exception {
+  public static Configuration initConf(String[] cmdArgs) throws Exception {
     // Parse cmd parameters
     Map<String, String> cmdConfMap = parseArgs(cmdArgs);
 
@@ -64,28 +66,34 @@ public class ConfUtils {
     // load user configuration:
     // load user config file
     String jobConfFile = cmdConfMap.get(AngelConf.ANGEL_APP_CONFIG_FILE);
-    if(jobConfFile != null) {
+    if (jobConfFile != null) {
       LOG.info("user app config file " + jobConfFile);
       conf.addResource(new Path(jobConfFile));
     } else {
       jobConfFile = conf.get(AngelConf.ANGEL_APP_CONFIG_FILE);
-      if(jobConfFile != null) {
+      if (jobConfFile != null) {
         LOG.info("user app config file " + jobConfFile);
         conf.addResource(new Path(jobConfFile));
       }
     }
 
     // load command line parameters
-    if(cmdConfMap != null && !cmdConfMap.isEmpty()) {
-      for(Map.Entry<String, String> entry : cmdConfMap.entrySet()) {
+    if (cmdConfMap != null && !cmdConfMap.isEmpty()) {
+      for (Map.Entry<String, String> entry : cmdConfMap.entrySet()) {
         conf.set(entry.getKey(), entry.getValue());
       }
     }
 
     // load user job resource files
     String userResourceFiles = conf.get(AngelConf.ANGEL_APP_USER_RESOURCE_FILES);
-    if(userResourceFiles != null) {
+    if (userResourceFiles != null) {
       addResourceFiles(conf, userResourceFiles);
+    }
+
+    // load ml conf file for graph based algorithm
+    String mlConfFiles = conf.get(AngelConf.ANGEL_ML_CONF);
+    if (mlConfFiles != null && mlConfFiles.length() != 0) {
+      addResourceFiles(conf, mlConfFiles);
     }
 
     // load user job jar if it exist

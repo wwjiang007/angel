@@ -1,35 +1,40 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
 import com.tencent.angel.exception.AngelException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 
 /**
  * DataBlock is a Basic storage abstract in Angel.
- *
+ * <p>
  * All Data read from HDFS or somewhere else will be read to become a DataBlock.
- *
+ * <p>
  * The data can be reuse multi-times for Machine Learning, and some other useful features is created to make it more convenience for ML
  *
  * @param <VALUE> the value type
  */
 public abstract class DataBlock<VALUE> {
+  private static final Log LOG = LogFactory.getLog(DataBlock.class);
   /**
    * The Value class.
    */
@@ -38,12 +43,12 @@ public abstract class DataBlock<VALUE> {
   /**
    * The Read index.
    */
-  protected int readIndex;
+  protected volatile int readIndex;
 
   /**
    * The Write index.
    */
-  protected int writeIndex;
+  protected volatile int writeIndex;
 
   public DataBlock() {
     readIndex = 0;
@@ -127,7 +132,7 @@ public abstract class DataBlock<VALUE> {
    * Slice storage
    *
    * @param startIndex the start index
-   * @param length the length
+   * @param length     the length
    * @return the sliced storage
    * @throws IOException the io exception
    */
@@ -188,7 +193,7 @@ public abstract class DataBlock<VALUE> {
    *
    * @return
    */
-  public VALUE loopingRead() throws IOException{
+  public VALUE loopingRead() throws IOException {
     VALUE data = this.read();
     if (data == null) {
       resetReadIndex();
@@ -201,9 +206,8 @@ public abstract class DataBlock<VALUE> {
       throw new AngelException("Train data storage is empty or corrupted.");
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "DataBlock [valueClass=" + valueClass + ", readIndex=" + readIndex + ", writeIndex="
-        + writeIndex + "]";
+      + writeIndex + "]";
   }
 }

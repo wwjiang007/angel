@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.webapp.page;
 
@@ -41,13 +43,11 @@ import static org.apache.hadoop.yarn.webapp.view.JQueryUI._TH;
 public class WorkerGroupBlock extends HtmlBlock {
   final AMContext amContext;
 
-  @Inject
-  WorkerGroupBlock(AMContext amctx) {
+  @Inject WorkerGroupBlock(AMContext amctx) {
     amContext = amctx;
   }
 
-  @Override
-  protected void render(Block html) {
+  @Override protected void render(Block html) {
     String workerGroupIdSr = $(WORKERGROUP_ID);
     if (workerGroupIdSr.isEmpty()) {
       html.p()._("Sorry, can't do anything without a WorkerGroupId.")._();
@@ -74,8 +74,8 @@ public class WorkerGroupBlock extends HtmlBlock {
     TR<THEAD<TABLE<DIV<Hamlet>>>> headTr = table.thead().tr();
 
     headTr.th(_TH, "id").th(_TH, "state").th(_TH, "node address").th(_TH, "start time")
-        .th(_TH, "end time").th(_TH, "elapsed time").th(_TH, "log").th(_TH, "threadstack")
-        .th(_TH, "workercounter");
+      .th(_TH, "end time").th(_TH, "elapsed time").th(_TH, "log").th(_TH, "threadstack")
+      .th(_TH, "workercounter");
 
     headTr._()._();
 
@@ -92,46 +92,34 @@ public class WorkerGroupBlock extends HtmlBlock {
         }
 
         if (workerAttempt.getNodeHttpAddr() == null) {
-          tr.td()
-              .a(url("angel/workerPage", workerAttempt.getId().toString()),
-                  workerAttempt.getId().toString())
-              ._()
-              .td(workerAttempt.getState().toString())
-              .td("N/A")
-              .td((workerAttempt.getLaunchTime() == 0) ? "N/A" : new Date(workerAttempt
-                  .getLaunchTime()).toString())
-              .td((workerAttempt.getFinishTime() == 0) ? "N/A" : new Date(workerAttempt
-                  .getFinishTime()).toString())
-              .td((elaspedTs == 0) ? "N/A" : StringUtils.formatTime(elaspedTs)).td("N/A").td("N/A")
-              .td("N/A");
+          tr.td().a(url("angel/workerPage", workerAttempt.getId().toString()),
+            workerAttempt.getId().toString())._().td(workerAttempt.getState().toString()).td("N/A")
+            .td((workerAttempt.getLaunchTime() == 0) ?
+              "N/A" :
+              new Date(workerAttempt.getLaunchTime()).toString()).td(
+            (workerAttempt.getFinishTime() == 0) ?
+              "N/A" :
+              new Date(workerAttempt.getFinishTime()).toString())
+            .td((elaspedTs == 0) ? "N/A" : StringUtils.formatTime(elaspedTs)).td("N/A").td("N/A")
+            .td("N/A");
         } else {
 
-          tr.td()
-              .a(url("angel/workerPage", workerAttempt.getId().toString()),
-                  workerAttempt.getId().toString())
-              ._()
-              .td(workerAttempt.getState().toString())
-              .td()
-              .a(url(MRWebAppUtil.getYARNWebappScheme(), workerAttempt.getNodeHttpAddr()),
-                  workerAttempt.getNodeHttpAddr())
-              ._()
-              .td((workerAttempt.getLaunchTime() == 0) ? "N/A" : new Date(workerAttempt
-                  .getLaunchTime()).toString())
-              .td((workerAttempt.getFinishTime() == 0) ? "N/A" : new Date(workerAttempt
-                  .getFinishTime()).toString())
-              .td((elaspedTs == 0) ? "N/A" : StringUtils.formatTime(elaspedTs))
-              .td()
-              .a(url(MRWebAppUtil.getYARNWebappScheme(), workerAttempt.getNodeHttpAddr(), "node",
-                  "containerlogs", workerAttempt.getContainerIdStr(), amContext.getUser()
-                      .toString()), "log")
-              ._()
-              .td()
-              .a(url("angel/workerThreadStackPage/", workerAttempt.getId().toString()),
-                  "workerthreadstack")
-              ._()
-              .td()
-              .a(url("angel/workerCounterPage/", workerAttempt.getId().toString()), "workercounter")
-              ._();
+          tr.td().a(url("angel/workerPage", workerAttempt.getId().toString()),
+            workerAttempt.getId().toString())._().td(workerAttempt.getState().toString()).td()
+            .a(url(MRWebAppUtil.getYARNWebappScheme(), workerAttempt.getNodeHttpAddr()),
+              workerAttempt.getNodeHttpAddr())._().td((workerAttempt.getLaunchTime() == 0) ?
+            "N/A" :
+            new Date(workerAttempt.getLaunchTime()).toString()).td(
+            (workerAttempt.getFinishTime() == 0) ?
+              "N/A" :
+              new Date(workerAttempt.getFinishTime()).toString())
+            .td((elaspedTs == 0) ? "N/A" : StringUtils.formatTime(elaspedTs)).td().a(
+            url(MRWebAppUtil.getYARNWebappScheme(), workerAttempt.getNodeHttpAddr(), "node",
+              "containerlogs", workerAttempt.getContainerIdStr(), amContext.getUser().toString()),
+            "log")._().td().a(url("angel/workerThreadStackPage/", workerAttempt.getId().toString()),
+            "workerthreadstack")._().td()
+            .a(url("angel/workerCounterPage/", workerAttempt.getId().toString()), "workercounter")
+            ._();
         }
         tr._();
       }

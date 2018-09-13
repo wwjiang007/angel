@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.task;
 
@@ -47,12 +49,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TaskContext {
   private final TaskId taskId;
   private final TaskIdProto taskIdProto;
-  
-  
-  @SuppressWarnings("rawtypes")
-  private Reader reader;
+
+
+  @SuppressWarnings("rawtypes") private Reader reader;
   private final com.tencent.angel.psagent.task.TaskContext context;
-  
+
   /**
    * Instantiates context with task id.
    *
@@ -63,7 +64,7 @@ public class TaskContext {
     this.taskIdProto = ProtobufUtil.convertToIdProto(taskId);
     context = PSAgentContext.get().getTaskContext(taskId.getIndex());
   }
-  
+
   /**
    * Instantiates context with task meta.
    *
@@ -80,7 +81,7 @@ public class TaskContext {
       context.setMatrixClock(matrixClocks.get(i).getMatrixId(), matrixClocks.get(i).getClock());
     }
   }
-  
+
   /**
    * Gets reader.
    *
@@ -91,16 +92,15 @@ public class TaskContext {
    * @throws IOException
    * @throws InterruptedException
    */
-  @SuppressWarnings("unchecked")
-  public <K, V> Reader<K, V> getReader() throws ClassNotFoundException, IOException,
-          InterruptedException {
+  @SuppressWarnings("unchecked") public <K, V> Reader<K, V> getReader()
+    throws ClassNotFoundException, IOException, InterruptedException {
     if (reader == null) {
       DataBlockManager dataBlockManager = WorkerContext.get().getDataBlockManager();
       reader = dataBlockManager.getReader(taskId);
     }
     return reader;
   }
-  
+
   /**
    * Create matrix.
    *
@@ -109,13 +109,12 @@ public class TaskContext {
    * @return the matrix meta
    * @throws Exception
    */
-  public MatrixMeta createMatrix(MatrixContext matrixContext, long timeOutMs)
-    throws Exception {
+  public MatrixMeta createMatrix(MatrixContext matrixContext, long timeOutMs) throws Exception {
     MasterClient masterClient = WorkerContext.get().getPSAgent().getMasterClient();
     masterClient.createMatrix(matrixContext, timeOutMs);
     return masterClient.getMatrix(matrixContext.getName());
   }
-  
+
   /**
    * Release matrix.
    *
@@ -129,7 +128,7 @@ public class TaskContext {
     masterClient.releaseMatrix(matrix.getName());
     return matrix;
   }
-  
+
   /**
    * Gets task id.
    *
@@ -138,7 +137,7 @@ public class TaskContext {
   public TaskId getTaskId() {
     return taskId;
   }
-  
+
   /**
    * Gets task's index.
    *
@@ -147,11 +146,11 @@ public class TaskContext {
   public int getTaskIndex() {
     return taskId.getIndex();
   }
-  
+
   public TaskIdProto getTaskIdProto() {
     return taskIdProto;
   }
-  
+
   /**
    * Gets context of psagent side.
    *
@@ -160,7 +159,7 @@ public class TaskContext {
   public com.tencent.angel.psagent.task.TaskContext getContext() {
     return context;
   }
-  
+
   /**
    * Get Task progress
    *
@@ -169,7 +168,7 @@ public class TaskContext {
   public float getProgress() {
     return context.getProgress();
   }
-  
+
   /**
    * Set Task progress
    *
@@ -178,7 +177,7 @@ public class TaskContext {
   public void setProgress(float progress) {
     context.setProgress(progress);
   }
-  
+
   /**
    * Gets ps agent.
    *
@@ -187,7 +186,7 @@ public class TaskContext {
   public PSAgent getPSAgent() {
     return WorkerContext.get().getPSAgent();
   }
-  
+
   /**
    * Gets matrix.
    *
@@ -198,7 +197,7 @@ public class TaskContext {
   public MatrixClient getMatrix(String matrixName) throws InvalidParameterException {
     return WorkerContext.get().getPSAgent().getMatrixClient(matrixName, taskId.getIndex());
   }
-  
+
   /**
    * Gets conf.
    *
@@ -207,7 +206,7 @@ public class TaskContext {
   public Configuration getConf() {
     return WorkerContext.get().getConf();
   }
-  
+
   /**
    * Gets total task num of current worker
    *
@@ -216,7 +215,7 @@ public class TaskContext {
   public int getTotalTaskNum() {
     return WorkerContext.get().getActiveTaskNum();
   }
-  
+
   /**
    * Global sync with special matrix,still wait until all matrixes's clock is synchronized.
    *
@@ -226,7 +225,7 @@ public class TaskContext {
   public void globalSync(int matrixId) throws InterruptedException {
     context.globalSync(matrixId);
   }
-  
+
   /**
    * Global sync with all matrix.
    *
@@ -235,7 +234,7 @@ public class TaskContext {
   public void globalSync() throws InterruptedException {
     context.globalSync();
   }
-  
+
   /**
    * Gets iteration num.
    *
@@ -244,7 +243,7 @@ public class TaskContext {
   public int getEpoch() {
     return context.getEpoch();
   }
-  
+
   /**
    * Increase iteration count.
    *
@@ -253,7 +252,7 @@ public class TaskContext {
   public void incEpoch() throws ServiceException {
     context.increaseEpoch();
   }
-  
+
   /**
    * Gets all matrix clocks.
    *
@@ -262,7 +261,7 @@ public class TaskContext {
   public Map<Integer, AtomicInteger> getMatrixClocks() {
     return context.getMatrixClocks();
   }
-  
+
   /**
    * Get matrix clock by matrix id
    *
@@ -272,13 +271,12 @@ public class TaskContext {
   public int getMatrixClock(int matrixId) {
     return context.getMatrixClock(matrixId);
   }
-  
-  @Override
-  public String toString() {
-    return "TaskContext [taskId=" + taskId + ", taskIdProto=" + taskIdProto + ", context="
-            + context + "]";
+
+  @Override public String toString() {
+    return "TaskContext [taskId=" + taskId + ", taskIdProto=" + taskIdProto + ", context=" + context
+      + "]";
   }
-  
+
   /**
    * Update calculate profiling counters
    *
@@ -288,7 +286,7 @@ public class TaskContext {
   public void updateProfileCounter(int sampleNum, int useTimeMs) {
     context.updateProfileCounter(sampleNum, useTimeMs);
   }
-  
+
   /**
    * Increment the counter
    *
@@ -298,7 +296,7 @@ public class TaskContext {
   public void updateCounter(String counterName, int updateValue) {
     context.updateCounter(counterName, updateValue);
   }
-  
+
   /**
    * Update the counter
    *
@@ -308,11 +306,11 @@ public class TaskContext {
   public void setCounter(String counterName, int updateValue) {
     context.setCounter(counterName, updateValue);
   }
-  
+
   public Map<String, AtomicLong> getCounters() {
     return context.getMetrics();
   }
-  
+
   /**
    * Add a algorithm metric
    *

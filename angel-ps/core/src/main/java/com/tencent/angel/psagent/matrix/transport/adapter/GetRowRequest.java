@@ -1,52 +1,59 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
 
-package com.tencent.angel.psagent.matrix.transport.adapter;
 
-import java.util.UUID;
+package com.tencent.angel.psagent.matrix.transport.adapter;
 
 /**
  * Get row request.
  */
 public class GetRowRequest extends UserRequest {
-  /** matrix id */
+  /**
+   * matrix id
+   */
   private final int matrixId;
 
-  /** row index */
+  /**
+   * row index
+   */
   private final int rowIndex;
 
-  private final UUID uuid = UUID.randomUUID();
+  /**
+   * Matrix local clock
+   */
+  private final int clock;
 
   /**
-   * 
    * Create a new GetRowRequest.
    *
    * @param matrixId matrix id
    * @param rowIndex row index
-   * @param clock clock value
+   * @param clock    clock value
    */
   public GetRowRequest(int matrixId, int rowIndex, int clock) {
-    super(UserRequestType.GET_ROW, clock);
+    super(UserRequestType.GET_ROW);
     this.matrixId = matrixId;
     this.rowIndex = rowIndex;
+    this.clock = clock;
   }
 
   /**
    * Get matrix id.
-   * 
+   *
    * @return int matrix id
    */
   public int getMatrixId() {
@@ -55,39 +62,37 @@ public class GetRowRequest extends UserRequest {
 
   /**
    * Get row index
-   * 
+   *
    * @return int row index
    */
   public int getRowIndex() {
     return rowIndex;
   }
 
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + matrixId;
-    result = prime * result + rowIndex;
-    return result;
+  @Override public String toString() {
+    return "GetRowRequest{" + "matrixId=" + matrixId + ", rowIndex=" + rowIndex + ", clock=" + clock
+      + "} " + super.toString();
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
+  @Override public boolean equals(Object o) {
+    if (this == o)
       return true;
-    if (!super.equals(obj))
+    if (o == null || getClass() != o.getClass())
       return false;
-    if (getClass() != obj.getClass())
+
+    GetRowRequest that = (GetRowRequest) o;
+
+    if (matrixId != that.matrixId)
       return false;
-    GetRowRequest other = (GetRowRequest) obj;
-    if (matrixId != other.matrixId)
+    if (rowIndex != that.rowIndex)
       return false;
-    return rowIndex == other.rowIndex;
+    return clock == that.clock;
   }
 
-  @Override
-  public String toString() {
-    return "GetRowRequest [id = " + uuid + ", matrixId=" + matrixId + ", rowIndex=" + rowIndex + ", toString()="
-        + super.toString() + "]";
+  @Override public int hashCode() {
+    int result = matrixId;
+    result = 31 * result + rowIndex;
+    result = 31 * result + clock;
+    return result;
   }
 }

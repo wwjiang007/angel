@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -14,6 +14,7 @@
  * the License.
  *
  */
+
 
 package com.tencent.angel.utils;
 
@@ -28,11 +29,12 @@ import java.io.ByteArrayOutputStream;
 
 public class KryoUtils {
   private static ThreadLocal<Kryo> kryos = new ThreadLocal<Kryo>();
-  private static ThreadLocal<KryoReflectionFactorySupport> kryoRefs = new ThreadLocal<KryoReflectionFactorySupport>();
+  private static ThreadLocal<KryoReflectionFactorySupport> kryoRefs =
+    new ThreadLocal<KryoReflectionFactorySupport>();
 
-  private static Kryo getKryo(){
+  private static Kryo getKryo() {
     Kryo kryo = kryos.get();
-    if(kryo == null) {
+    if (kryo == null) {
       kryo = new Kryo();
       kryos.set(kryo);
     }
@@ -40,9 +42,9 @@ public class KryoUtils {
     return kryo;
   }
 
-  private static KryoReflectionFactorySupport getKryoRef(){
+  private static KryoReflectionFactorySupport getKryoRef() {
     KryoReflectionFactorySupport kryoRef = kryoRefs.get();
-    if(kryoRef == null) {
+    if (kryoRef == null) {
       kryoRef = new KryoReflectionFactorySupport();
       kryoRefs.set(kryoRef);
     }
@@ -60,10 +62,10 @@ public class KryoUtils {
     return baos.toByteArray();
   }
 
-  public static Metric deserializeAlgoMetric(byte [] data) {
+  public static Metric deserializeAlgoMetric(byte[] data) {
     ByteArrayInputStream bais = new ByteArrayInputStream(data);
     Input input = new Input(bais);
     KryoReflectionFactorySupport kryoRef = getKryoRef();
-    return ((Metric)kryoRef.readClassAndObject(input));
+    return ((Metric) kryoRef.readClassAndObject(input));
   }
 }

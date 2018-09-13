@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.psagent.matrix.transport;
 
@@ -25,29 +27,29 @@ import java.util.concurrent.*;
  */
 public class FutureResult<T> implements Future<T> {
 
-  /** the result of the asynchronous task */
+  /**
+   * the result of the asynchronous task
+   */
   private volatile T result = null;
 
-  /** counter latch */
+  /**
+   * counter latch
+   */
   private final CountDownLatch counter = new CountDownLatch(1);
 
-  @Override
-  public boolean cancel(boolean mayInterruptIfRunning) {
+  @Override public boolean cancel(boolean mayInterruptIfRunning) {
     return false;
   }
 
-  @Override
-  public boolean isCancelled() {
+  @Override public boolean isCancelled() {
     return false;
   }
 
-  @Override
-  public boolean isDone() {
+  @Override public boolean isDone() {
     return result != null;
   }
 
-  @Override
-  public T get() throws InterruptedException, ExecutionException {
+  @Override public T get() throws InterruptedException, ExecutionException {
     if (result != null) {
       return result;
     }
@@ -55,9 +57,8 @@ public class FutureResult<T> implements Future<T> {
     return result;
   }
 
-  @Override
-  public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException,
-      TimeoutException {
+  @Override public T get(long timeout, TimeUnit unit)
+    throws InterruptedException, ExecutionException, TimeoutException {
     if (result != null) {
       return result;
     }
@@ -67,7 +68,7 @@ public class FutureResult<T> implements Future<T> {
 
   /**
    * Set the result of the asynchronous task.
-   * 
+   *
    * @param result the result of the asynchronous task
    */
   public void set(T result) {

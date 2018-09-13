@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
@@ -41,7 +43,7 @@ import java.util.UUID;
  * Use {@link Kryo} as serialization framework. <br>
  * Use {@link LocalDirAllocator} allocation for creating files
  * </p>
- * 
+ *
  * @param <VALUE> the value type
  */
 public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
@@ -61,7 +63,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
   private final int writeBufferSize; // kvWriteBuffer size
   private long bytesWrittenToCurrentFile; // already written bytes to current file
   private final long maxSizePerFile; // max filesize, if current file is over this size, a new file
-                                     // will be created
+  // will be created
   private String currentWriteFileName; // current writing file name
   private int currentWriteFileIndex; // current writing file index
   private Output kryoOutput;
@@ -77,25 +79,20 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     lDirAlloc = new LocalDirAllocator(AngelConf.LOCAL_DIR);
 
     uuid = UUID.randomUUID();
-    base =
-        ContainerLocalizer.USERCACHE + "/" + WorkerContext.get().getUser() + "/"
-            + ContainerLocalizer.APPCACHE + "/"
-            + ConverterUtils.toString(WorkerContext.get().getAppId()) + "/hdfsdatacache" + "/"
-            + uuid;
+    base = ContainerLocalizer.USERCACHE + "/" + WorkerContext.get().getUser() + "/"
+      + ContainerLocalizer.APPCACHE + "/" + ConverterUtils.toString(WorkerContext.get().getAppId())
+      + "/hdfsdatacache" + "/" + uuid;
 
     Configuration conf = WorkerContext.get().getConf();
 
-    readBufferSize =
-        conf.getInt(AngelConf.ANGEL_TASK_DISK_READ_BUFFER_SIZE,
-            AngelConf.DEFAULT_ANGEL_TASK_DISK_READ_BUFFER_SIZE);
+    readBufferSize = conf.getInt(AngelConf.ANGEL_TASK_DISK_READ_BUFFER_SIZE,
+      AngelConf.DEFAULT_ANGEL_TASK_DISK_READ_BUFFER_SIZE);
 
-    writeBufferSize =
-        conf.getInt(AngelConf.ANGEL_TASK_DISK_WRITE_BUFFER_SIZE,
-            AngelConf.DEFAULT_ANGEL_TASK_DISK_WRITE_BUFFER_SIZE);
+    writeBufferSize = conf.getInt(AngelConf.ANGEL_TASK_DISK_WRITE_BUFFER_SIZE,
+      AngelConf.DEFAULT_ANGEL_TASK_DISK_WRITE_BUFFER_SIZE);
 
-    maxSizePerFile =
-        conf.getInt(AngelConf.ANGEL_TASK_RECORD_FILE_MAXSIZE_MB,
-            AngelConf.DEFAULT_ANGEL_TASK_RECORD_FILE_MAXSIZE_MB) << 20;
+    maxSizePerFile = conf.getInt(AngelConf.ANGEL_TASK_RECORD_FILE_MAXSIZE_MB,
+      AngelConf.DEFAULT_ANGEL_TASK_RECORD_FILE_MAXSIZE_MB) << 20;
     kryo = new Kryo();
     init();
     LOG.info("create diskstorage, base=" + base);
@@ -112,8 +109,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     currentValue = null;
   }
 
-  @Override
-  public void registerType(Class<VALUE> valueClass) {
+  @Override public void registerType(Class<VALUE> valueClass) {
     if (this.valueClass != null || valueClass == null) {
       return;
     }
@@ -122,8 +118,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     kryo.register(valueClass);
   }
 
-  @Override
-  public VALUE read() throws IOException {
+  @Override public VALUE read() throws IOException {
     if (hasNext()) {
       readIndex++;
       currentValue = kryo.readObjectOrNull(kryoInput, valueClass);
@@ -133,8 +128,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  protected boolean hasNext() throws IOException {
+  @Override protected boolean hasNext() throws IOException {
     if (kryoInput == null) {
       if (currentReadFileIndex >= filelist.size()) {
         return false;
@@ -167,14 +161,11 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public VALUE get(int index) throws IOException {
+  @Override public VALUE get(int index) throws IOException {
     throw new IOException("unsupport operation for " + this.getClass().getName());
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public void put(VALUE value) throws IOException {
+  @SuppressWarnings("unchecked") @Override public void put(VALUE value) throws IOException {
     if (value == null) {
       return;
     }
@@ -222,11 +213,11 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
   private String getNextFileName() throws IOException {
     try {
       String filePath =
-          base + "_" + WorkerContext.get().getWorkerAttemptId() + "_" + taskIndex + "_"
-              + currentWriteFileIndex++;
+        base + "_" + WorkerContext.get().getWorkerAttemptId() + "_" + taskIndex + "_"
+          + currentWriteFileIndex++;
 
       Path newPath =
-          lDirAlloc.getLocalPathForWrite(filePath, maxSizePerFile, WorkerContext.get().getConf());
+        lDirAlloc.getLocalPathForWrite(filePath, maxSizePerFile, WorkerContext.get().getConf());
 
       LOG.info("KVDiskStorage create a new file, filePath = " + newPath);
       return newPath.toUri().toString();
@@ -235,8 +226,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void resetReadIndex() throws IOException {
+  @Override public void resetReadIndex() throws IOException {
     readIndex = 0;
     currentReadFileIndex = 0;
     if (filelist.size() > 0) {
@@ -246,8 +236,7 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void clean() throws IOException {
+  @Override public void clean() throws IOException {
     for (String path : filelist) {
       new File(path).deleteOnExit();
     }
@@ -255,32 +244,28 @@ public class DiskDataBlock<VALUE> extends DataBlock<VALUE> {
     init();
   }
 
-  @Override
-  public void shuffle() throws IOException {
+  @Override public void shuffle() throws IOException {
     throw new IOException("no support operation for " + this.getClass().getName());
   }
 
-  @Override
-  public DataBlock<VALUE> slice(int startIndex, int length) throws IOException {
+  @Override public DataBlock<VALUE> slice(int startIndex, int length) throws IOException {
     throw new IOException("no support operation for " + this.getClass().getName());
   }
 
-  @Override
-  public void flush() throws IOException {
+  @Override public void flush() throws IOException {
     if (kryoOutput != null) {
       kryoOutput.flush();
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "DiskDataBlock [super.toString=" + super.toString() + ", taskIndex=" + taskIndex
-        + ", filelist=" + listToString(filelist) + ", base=" + base + ", currentReadFileIndex="
-        + currentReadFileIndex + ", readBufferSize=" + readBufferSize + ", writeBufferSize="
-        + writeBufferSize + ", bytesWrittenToCurrentFile=" + bytesWrittenToCurrentFile
-        + ", maxSizePerFile=" + maxSizePerFile + ", currentWriteFileName=" + currentWriteFileName
-        + ", currentWriteFileIndex=" + currentWriteFileIndex + ", writtenBytesInCompletedFile="
-        + writtenBytesInCompletedFile + ", uuid=" + uuid + "]";
+      + ", filelist=" + listToString(filelist) + ", base=" + base + ", currentReadFileIndex="
+      + currentReadFileIndex + ", readBufferSize=" + readBufferSize + ", writeBufferSize="
+      + writeBufferSize + ", bytesWrittenToCurrentFile=" + bytesWrittenToCurrentFile
+      + ", maxSizePerFile=" + maxSizePerFile + ", currentWriteFileName=" + currentWriteFileName
+      + ", currentWriteFileIndex=" + currentWriteFileIndex + ", writtenBytesInCompletedFile="
+      + writtenBytesInCompletedFile + ", uuid=" + uuid + "]";
   }
 
   private String listToString(List<String> list) {

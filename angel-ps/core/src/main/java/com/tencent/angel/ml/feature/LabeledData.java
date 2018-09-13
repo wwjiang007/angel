@@ -1,56 +1,47 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
+
 package com.tencent.angel.ml.feature;
 
-import com.tencent.angel.ml.math.TAbstractVector;
-import com.tencent.angel.ml.math.TVector;
+import com.tencent.angel.ml.math2.vector.Vector;
 
 /**
  * training data with label
- *
  */
 public class LabeledData {
 
-  private TVector x;
+  private Vector x;
   private double y;
-  private double y1;
 
-  private double score;
-
-  /**
-   * @param x
-   * @param y
-   */
-  public LabeledData(TVector x, double y) {
-    super();
+  public LabeledData(Vector x, double y) {
     this.x = x;
     this.y = y;
   }
 
   public LabeledData() {
-    super();
-    x = null;
-    y = 0;
+    this(null, 0);
   }
 
-  public TVector getX() {
+  public Vector getX() {
     return x;
   }
 
-  public void setX(TVector x) {
+  public void setX(Vector x) {
     this.x = x;
   }
 
@@ -60,21 +51,5 @@ public class LabeledData {
 
   public void setY(double y) {
     this.y = y;
-  }
-
-  public void setY1(double y1) {
-    this.y1 = y1;
-  }
-
-  public double getY1() {
-    return y1;
-  }
-
-  public double getScore() {
-    return score;
-  }
-
-  public void setScore(double score) {
-    this.score = score;
   }
 }

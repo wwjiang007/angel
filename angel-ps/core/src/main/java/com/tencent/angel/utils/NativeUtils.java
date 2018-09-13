@@ -1,18 +1,21 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
+
 package com.tencent.angel.utils;
 
 import java.io.*;
@@ -21,29 +24,28 @@ import java.io.*;
  * A simple library class which helps with loading dynamic libraries stored in the JAR archive.
  * These libraries usualy contain implementation of some methods in native code (using JNI - Java
  * Native Interface).
- *
  */
 public class NativeUtils {
 
   /**
    * Private constructor - this class will never be instanced
    */
-  private NativeUtils() {}
+  private NativeUtils() {
+  }
 
   /**
    * Loads library from current JAR archive
-   *
+   * <p>
    * The file from JAR is copied into system temporary directory and then loaded. The temporary file
    * is deleted after exiting. Method uses String as filename because the pathname is "abstract",
    * not system-dependent.
    *
    * @param path The path of file inside JAR as absolute path (beginning with '/'), e.g.
-   *        /package/File.ext
-   * @throws IOException If temporary file creation or read/write operation fails
+   *             /package/File.ext
+   * @throws IOException              If temporary file creation or read/write operation fails
    * @throws IllegalArgumentException If source file (param path) does not exist
    * @throws IllegalArgumentException If the path is not absolute or if the filename is shorter than
-   *         three characters (restriction of {@see File#createTempFile(java.lang.String,
-   *         java.lang.String)}).
+   *                                  three characters (restriction of {@see File#createTempFile(java.lang.String, *java.lang.String)}).
    */
   public static void loadLibraryFromJar(String path) throws IOException {
 

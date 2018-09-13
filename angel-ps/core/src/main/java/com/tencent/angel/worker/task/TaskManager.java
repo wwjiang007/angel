@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.task;
 
@@ -49,8 +51,7 @@ public class TaskManager {
   public void init() {
     Configuration conf = WorkerContext.get().getConf();
     int taskNumInWork =
-        conf.getInt(AngelConf.ANGEL_WORKER_TASK_NUMBER,
-            AngelConf.DEFAULT_ANGEL_WORKER_TASK_NUMBER);
+      conf.getInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, AngelConf.DEFAULT_ANGEL_WORKER_TASK_NUMBER);
     taskPool = Executors.newFixedThreadPool(taskNumInWork);
   }
 
@@ -149,13 +150,27 @@ public class TaskManager {
    */
   public boolean isAllTaskExit() {
     for (Entry<TaskId, Task> entry : runningTask.entrySet()) {
-      if (!(entry.getValue().getTaskState() == TaskState.SUCCESS)
-          && !(entry.getValue().getTaskState() == TaskState.FAILED)
-          && !(entry.getValue().getTaskState() == TaskState.KILLED)) {
+      if (!(entry.getValue().getTaskState() == TaskState.SUCCESS) && !(
+        entry.getValue().getTaskState() == TaskState.FAILED) && !(entry.getValue().getTaskState()
+        == TaskState.KILLED)) {
         return false;
       }
     }
     return true;
+  }
+
+  /**
+   * Check if a task failed
+   *
+   * @return true means that there is a failed task
+   */
+  public boolean isTaskFailed() {
+    for (Entry<TaskId, Task> entry : runningTask.entrySet()) {
+      if (entry.getValue().getTaskState() == TaskState.FAILED) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -177,8 +192,7 @@ public class TaskManager {
   /**
    * Combine update index.
    */
-  @SuppressWarnings("rawtypes")
-  public void combineUpdateIndex() {
+  @SuppressWarnings("rawtypes") public void combineUpdateIndex() {
     IntOpenHashSet indexSet = null;
     MatrixMeta meta = null;
     for (Entry<TaskId, Task> entry : runningTask.entrySet()) {
@@ -207,8 +221,7 @@ public class TaskManager {
       Arrays.sort(indexArray);
 
       List<PartitionKey> partKeyList =
-          WorkerContext.get().getPSAgent().getMatrixMetaManager()
-              .getPartitions(meta.getId());
+        WorkerContext.get().getPSAgent().getMatrixMetaManager().getPartitions(meta.getId());
       Collections.sort(partKeyList);
       int partNum = partKeyList.size();
       int lastPos = 0;

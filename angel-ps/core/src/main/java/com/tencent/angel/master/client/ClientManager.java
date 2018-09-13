@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.master.client;
 
@@ -59,8 +61,8 @@ public class ClientManager {
     this.context = context;
     clientToLastHBTsMap = new ConcurrentHashMap<>();
     clientIdToLocMap = new ConcurrentHashMap<>();
-    clientTimeoutMS =
-      context.getConf().getLong(AngelConf.ANGEL_CLIENT_HEARTBEAT_INTERVAL_TIMEOUT_MS,
+    clientTimeoutMS = context.getConf()
+      .getLong(AngelConf.ANGEL_CLIENT_HEARTBEAT_INTERVAL_TIMEOUT_MS,
         AngelConf.DEFAULT_ANGEL_CLIENT_HEARTBEAT_INTERVAL_TIMEOUT_MS);
   }
 
@@ -72,7 +74,7 @@ public class ClientManager {
     boolean isTimeOut = false;
     Map.Entry<Integer, Long> clientEntry;
     long currentTs = System.currentTimeMillis();
-    while(clientIt.hasNext()) {
+    while (clientIt.hasNext()) {
       clientEntry = clientIt.next();
       if (currentTs - clientEntry.getValue() > clientTimeoutMS) {
         LOG.error("Client " + clientEntry.getKey() + " heartbeat timeout");
@@ -81,7 +83,7 @@ public class ClientManager {
       }
     }
 
-    if(isTimeOut && clientToLastHBTsMap.isEmpty()) {
+    if (isTimeOut && clientToLastHBTsMap.isEmpty()) {
       LOG.error("All client timeout, just exit the application");
       context.getMasterService().stop(1);
     }
@@ -89,6 +91,7 @@ public class ClientManager {
 
   /**
    * Is a client alive
+   *
    * @param clientId client id
    * @return true means alive
    */
@@ -98,6 +101,7 @@ public class ClientManager {
 
   /**
    * Update the heartbeat timestamp for a client
+   *
    * @param clientId client id
    */
   public void alive(int clientId) {
@@ -106,6 +110,7 @@ public class ClientManager {
 
   /**
    * Client register
+   *
    * @param clientId client id
    */
   public void register(int clientId) {
@@ -114,6 +119,7 @@ public class ClientManager {
 
   /**
    * Client unregister
+   *
    * @param clientId client id
    */
   public void unRegister(int clientId) {
@@ -122,6 +128,7 @@ public class ClientManager {
 
   /**
    * Generate a new client id
+   *
    * @return a new client id
    */
   public int getId() {

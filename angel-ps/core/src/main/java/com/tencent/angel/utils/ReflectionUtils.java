@@ -1,40 +1,21 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
 
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/**
- * Remove some unused methods.
- */
 package com.tencent.angel.utils;
 
 import com.tencent.angel.conf.AngelConf;
@@ -81,10 +62,10 @@ public class ReflectionUtils {
 
       Class jobConfigurableClass = conf.getClassByName("org.apache.hadoop.mapred.JobConfigurable");
 
-      if ((jobConfClass.isAssignableFrom(conf.getClass()))
-          && (jobConfigurableClass.isAssignableFrom(theObject.getClass()))) {
+      if ((jobConfClass.isAssignableFrom(conf.getClass())) && (jobConfigurableClass
+        .isAssignableFrom(theObject.getClass()))) {
         Method configureMethod =
-            jobConfigurableClass.getMethod("configure", new Class[] {jobConfClass});
+          jobConfigurableClass.getMethod("configure", new Class[] {jobConfClass});
 
         configureMethod.invoke(theObject, new Object[] {conf});
       }
@@ -147,8 +128,8 @@ public class ReflectionUtils {
           stream.println("  Waiting on " + info.getLockName());
         } else if (state == Thread.State.BLOCKED) {
           stream.println("  Blocked on " + info.getLockName());
-          stream.println("  Blocked by "
-              + getTaskName(info.getLockOwnerId(), info.getLockOwnerName()));
+          stream
+            .println("  Blocked by " + getTaskName(info.getLockOwnerId(), info.getLockOwnerName()));
         }
 
         stream.println("  Stack:");
@@ -188,7 +169,7 @@ public class ReflectionUtils {
   static int getCacheSize() {
     return CONSTRUCTOR_CACHE.size();
   }
-  
+
   public static String getAttr(String item, Object conf) throws Exception {
     Class angelConfClass = AngelConf.class;
     Field field = angelConfClass.getDeclaredField(item);

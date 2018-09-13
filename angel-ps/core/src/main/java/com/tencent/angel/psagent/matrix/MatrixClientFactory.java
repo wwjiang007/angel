@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.psagent.matrix;
 
@@ -26,16 +28,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * Matrix client factory.
  */
 public class MatrixClientFactory {
-  /** matrix client type class name, default is MatrixClientImpl */
+  /**
+   * matrix client type class name, default is MatrixClientImpl
+   */
   private static String type = MatrixClientImpl.class.getName();
 
-  /** key to matrix client map */
+  /**
+   * key to matrix client map
+   */
   private static ConcurrentHashMap<Key, MatrixClient> cacheClients =
-      new ConcurrentHashMap<Key, MatrixClient>();
+    new ConcurrentHashMap<Key, MatrixClient>();
 
   /**
    * Set the matrix client type.
-   * 
+   *
    * @param type matrix client type class name
    */
   public static void setType(String type) {
@@ -44,13 +50,14 @@ public class MatrixClientFactory {
 
   /**
    * Get a matrix client.
-   * 
+   *
    * @param matrixName matrix name
-   * @param taskIndex task index
+   * @param taskIndex  task index
    * @return MatrixClient matrix client
    * @throws InvalidParameterException matrix does not exist
    */
-  public static MatrixClient get(String matrixName, int taskIndex) throws InvalidParameterException {
+  public static MatrixClient get(String matrixName, int taskIndex)
+    throws InvalidParameterException {
     int matrixId = PSAgentContext.get().getMatrixMetaManager().getMatrixId(matrixName);
     if (matrixId == -1) {
       throw new InvalidParameterException("matrix " + matrixName + " does not exist");
@@ -61,9 +68,9 @@ public class MatrixClientFactory {
 
   /**
    * Get a matrix client.
-   * 
+   *
    * @param matrixId matrix id
-   * @param taskId task id
+   * @param taskId   task id
    * @return MatrixClient matrix client
    * @throws InvalidParameterException matrix does not exist
    */
@@ -78,8 +85,8 @@ public class MatrixClientFactory {
       try {
         cacheClients.putIfAbsent(key, buildClient(matrixId, taskId, type));
       } catch (Exception x) {
-        throw new InvalidParameterException("Invalid matrix client type:"
-            + type.getClass().getName() + ", " + x.getMessage());
+        throw new InvalidParameterException(
+          "Invalid matrix client type:" + type.getClass().getName() + ", " + x.getMessage());
       }
       client = cacheClients.get(key);
     }
@@ -88,7 +95,7 @@ public class MatrixClientFactory {
   }
 
   private static MatrixClient buildClient(int matrix, int taskIndex, String type)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    throws InstantiationException, IllegalAccessException, ClassNotFoundException {
     MatrixClient client = (MatrixClient) (Class.forName(type).newInstance());
     client.setMatrixId(matrix);
     client.setTaskContext(getTaskContext(taskIndex));
@@ -116,8 +123,7 @@ public class MatrixClientFactory {
       return taskId;
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + matrixId;
@@ -125,8 +131,7 @@ public class MatrixClientFactory {
       return result;
     }
 
-    @Override
-    public boolean equals(Object obj) {
+    @Override public boolean equals(Object obj) {
       if (this == obj)
         return true;
       if (obj == null)
@@ -139,8 +144,7 @@ public class MatrixClientFactory {
       return taskId == other.taskId;
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return "Key [matrixId=" + matrixId + ", taskId=" + taskId + "]";
     }
   }

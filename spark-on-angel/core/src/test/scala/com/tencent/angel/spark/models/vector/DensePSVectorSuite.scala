@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -15,12 +15,14 @@
  *
  */
 
+
 package com.tencent.angel.spark.models.vector
 
 import scala.util.Random
 
+import com.tencent.angel.ml.math2.storage.IntDoubleDenseVectorStorage
+import com.tencent.angel.ml.math2.vector.IntDoubleVector
 import com.tencent.angel.spark.context.PSContext
-import com.tencent.angel.spark.linalg.DenseVector
 import com.tencent.angel.spark.{PSFunSuite, SharedPSContext}
 
 class DensePSVectorSuite extends PSFunSuite with SharedPSContext {
@@ -44,22 +46,23 @@ class DensePSVectorSuite extends PSFunSuite with SharedPSContext {
   test("fill with value") {
     val dVector = PSVector.duplicate(_psVector).fill(3.14)
 
-    dVector.pull.values.foreach { element =>
+    dVector.pull().asInstanceOf[IntDoubleVector].getStorage.getValues.foreach { element =>
       assert(element == 3.14)
     }
   }
 
   test("fill with array") {
     val rand = new Random()
-    val localArray = (0 until dim).toArray.map { i =>
+    val localArray = (0 until dim).toArray.map { _ =>
       rand.nextDouble()
     }
-    val dVector = PSVector.duplicate(_psVector).push(new DenseVector(localArray))
+    val local = new IntDoubleVector(0, 0, 0, dim, new IntDoubleDenseVectorStorage(localArray))
+    val dVector = PSVector.duplicate(_psVector).push(local)
 
-    val remoteArray = dVector.pull
+    val remoteArray = dVector.pull().asInstanceOf[IntDoubleVector]
 
     (0 until dim).foreach { index =>
-      assert(math.abs(remoteArray(index) - localArray(index)) < 1e-6)
+      assert(math.abs(remoteArray.get(index) - localArray(index)) < 1e-6)
     }
   }
 
@@ -67,7 +70,7 @@ class DensePSVectorSuite extends PSFunSuite with SharedPSContext {
     val dVector = PSVector.duplicate(_psVector).randomUniform(0.0, 1.0)
 
     var isCorrect = true
-    dVector.pull.values.foreach(x => if (x < 0.0 || x > 1.0) isCorrect = false )
+    dVector.pull().asInstanceOf[IntDoubleVector].getStorage.getValues.foreach(x => if (x < 0.0 || x > 1.0) isCorrect = false)
     assert(isCorrect)
   }
 
@@ -75,7 +78,7 @@ class DensePSVectorSuite extends PSFunSuite with SharedPSContext {
 
     val dVector = PSVector.dense(10000, 2).randomNormal(0.0, 1.0)
 
-    val array = dVector.pull.values
+    val array = dVector.pull().asInstanceOf[IntDoubleVector].getStorage.getValues
     val mean = array.sum / array.length
     val variety = array.map(x => math.pow(x - mean, 2.0)).sum / (array.length - 1)
 

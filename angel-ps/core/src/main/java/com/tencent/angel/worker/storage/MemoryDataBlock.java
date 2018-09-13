@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
@@ -34,7 +36,7 @@ import java.util.Collections;
  * Will estimate the value of memory occupation to calculate suitable array size when reached simple
  * number, make sure the memory will not over-limit
  * </p>
- * 
+ *
  * @param <VALUE> the type parameter
  */
 public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
@@ -50,13 +52,11 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     super();
 
     Configuration conf = WorkerContext.get().getConf();
-    maxUseMemroy =
-        conf.getLong(AngelConf.ANGEL_TASK_MEMORYSTORAGE_USE_MAX_MEMORY_MB,
-            AngelConf.DEFAULT_ANGEL_TASK_MEMORYSTORAGE_USE_MAX_MEMORY_MB) * 1024 * 1024;
+    maxUseMemroy = conf.getLong(AngelConf.ANGEL_TASK_MEMORYSTORAGE_USE_MAX_MEMORY_MB,
+      AngelConf.DEFAULT_ANGEL_TASK_MEMORYSTORAGE_USE_MAX_MEMORY_MB) * 1024 * 1024;
 
-    estimateSampleNumber =
-        conf.getInt(AngelConf.ANGEL_TASK_ESTIMIZE_SAMPLE_NUMBER,
-            AngelConf.DEFAULT_ANGEL_TASK_ESTIMIZE_SAMPLE_NUMBER);
+    estimateSampleNumber = conf.getInt(AngelConf.ANGEL_TASK_ESTIMIZE_SAMPLE_NUMBER,
+      AngelConf.DEFAULT_ANGEL_TASK_ESTIMIZE_SAMPLE_NUMBER);
 
     int size = (initSize > 0) ? initSize : estimateSampleNumber;
 
@@ -72,8 +72,7 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     vList = other.getvList();
   }
 
-  @Override
-  public VALUE read() throws IOException {
+  @Override public VALUE read() throws IOException {
     if (readIndex < writeIndex) {
       return vList.get(readIndex++);
     } else {
@@ -81,13 +80,11 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  protected boolean hasNext() throws IOException {
+  @Override protected boolean hasNext() throws IOException {
     return readIndex < writeIndex;
   }
 
-  @Override
-  public void put(VALUE value) throws IOException {
+  @Override public void put(VALUE value) throws IOException {
     vList.add(value);
     writeIndex++;
 
@@ -96,25 +93,21 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void resetReadIndex() throws IOException {
+  @Override public void resetReadIndex() throws IOException {
     readIndex = (startPos > 0) ? startPos : 0;
   }
 
-  @Override
-  public void clean() throws IOException {
+  @Override public void clean() throws IOException {
     readIndex = 0;
     writeIndex = 0;
     vList.clear();
   }
 
-  @Override
-  public void shuffle() {
+  @Override public void shuffle() {
     Collections.shuffle(vList);
   }
 
-  @Override
-  public DataBlock<VALUE> slice(int startIndex, int length) {
+  @Override public DataBlock<VALUE> slice(int startIndex, int length) {
     MemoryDataBlock<VALUE> other = new MemoryDataBlock<VALUE>(this);
     other.startPos = startIndex;
     other.setReadIndex(startIndex);
@@ -134,8 +127,7 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     return estimateSampleNumber;
   }
 
-  @Override
-  public VALUE get(int index) throws IOException {
+  @Override public VALUE get(int index) throws IOException {
     if (index < 0 || index >= writeIndex) {
       throw new IOException("index not in range[0," + writeIndex + ")");
     }
@@ -143,8 +135,7 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
     return vList.get(index);
   }
 
-  @Override
-  public void flush() throws IOException {
+  @Override public void flush() throws IOException {
 
   }
 
@@ -154,17 +145,16 @@ public class MemoryDataBlock<VALUE> extends DataBlock<VALUE> {
 
     vList.ensureCapacity(maxStoreNum);
     LOG.debug("estimate sample number=" + vList.size() + ", estimatedSize=" + estimatedSize
-        + ", maxStoreNum=" + maxStoreNum + ", maxUseMemroy=" + maxUseMemroy);
+      + ", maxStoreNum=" + maxStoreNum + ", maxUseMemroy=" + maxUseMemroy);
   }
 
   public boolean checkIsOverMaxMemoryUsed() {
     return writeIndex >= maxStoreNum;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "MemoryDataBlock [vList size=" + vList.size() + ", maxUseMemroy=" + maxUseMemroy
-        + ", estimateSampleNumber=" + estimateSampleNumber + ", estimatedSize=" + estimatedSize
-        + ", maxStoreNum=" + maxStoreNum + ", toString()=" + super.toString() + "]";
+      + ", estimateSampleNumber=" + estimateSampleNumber + ", estimatedSize=" + estimatedSize
+      + ", maxStoreNum=" + maxStoreNum + ", toString()=" + super.toString() + "]";
   }
 }

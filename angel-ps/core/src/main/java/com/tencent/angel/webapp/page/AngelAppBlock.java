@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.webapp.page;
 
@@ -39,13 +41,11 @@ public class AngelAppBlock extends HtmlBlock {
 
   final AMContext amContext;
 
-  @Inject
-  AngelAppBlock(AMContext amctx) {
+  @Inject AngelAppBlock(AMContext amctx) {
     amContext = amctx;
   }
 
-  @Override
-  protected void render(Block html) {
+  @Override protected void render(Block html) {
 
     set(TITLE, join("Angel Application", amContext.getApplicationId()));
 
@@ -59,13 +59,12 @@ public class AngelAppBlock extends HtmlBlock {
     }
 
     info("Job Overview")._("Job Name:", amContext.getApplicationName())
-        ._("State:", app.getExternAppState().toString())
-        ._("Started:", new Date(app.getLaunchTime()))
-        ._("Elapsed:", StringUtils.formatTime(elaspedTs))
-        ._("Environment:", "nomeaning" == null ? "#" : "angel/EnvironmentPage",
-            "Runtime Information And Properties")
-        ._("Task Progress:", "nomeaning" == null ? "#" : "angel/ProgressPage", "progress")
-        ._("Master Threaddump:", "nomeaning" == null ? "#" : "angel/ExecutorsPage", "threaddump");
+      ._("State:", app.getExternAppState().toString())._("Started:", new Date(app.getLaunchTime()))
+      ._("Elapsed:", StringUtils.formatTime(elaspedTs))
+      ._("Environment:", "nomeaning" == null ? "#" : "angel/EnvironmentPage",
+        "Runtime Information And Properties")
+      ._("Task Progress:", "nomeaning" == null ? "#" : "angel/ProgressPage", "progress")
+      ._("Master Threaddump:", "nomeaning" == null ? "#" : "angel/ExecutorsPage", "threaddump");
 
 
 
@@ -73,7 +72,7 @@ public class AngelAppBlock extends HtmlBlock {
 
     TABLE<DIV<Hamlet>> table = div.table("#job");
     table.tr().th(_TH, "module").th(_TH, "new").th(_TH, "running").th(_TH, "failed")
-        .th(_TH, "killed").th(_TH, "success")._();
+      .th(_TH, "killed").th(_TH, "success")._();
 
     int newGroupNum = 0;
     int runningGroupNum = 0;
@@ -114,7 +113,7 @@ public class AngelAppBlock extends HtmlBlock {
     }
 
     for (AMParameterServer ps : amContext.getParameterServerManager().getParameterServerMap()
-        .values()) {
+      .values()) {
       for (PSAttempt psAttemp : ps.getPSAttempts().values()) {
         switch (psAttemp.getInternalState()) {
           case NEW:
@@ -142,17 +141,17 @@ public class AngelAppBlock extends HtmlBlock {
     }
 
     table.tr().td("workergroups").td()
-        .a(url("angel/workerGroupsPage", "NEW"), String.valueOf(newGroupNum))._().td()
-        .a(url("angel/workerGroupsPage", "RUNNING"), String.valueOf(runningGroupNum))._().td()
-        .a(url("angel/workerGroupsPage", "FAILED"), String.valueOf(failedGroupNum))._().td()
-        .a(url("angel/workerGroupsPage", "KILLED"), String.valueOf(killedGroupNum))._().td()
-        .a(url("angel/workerGroupsPage", "SUCCESS"), String.valueOf(successGroupNum))._()._().tr()
-        .td("parameterservers").td()
-        .a(url("angel/parameterServersPage", "NEW"), String.valueOf(newPSNum))._().td()
-        .a(url("angel/parameterServersPage", "RUNNING"), String.valueOf(runningPSNum))._().td()
-        .a(url("angel/parameterServersPage", "FAILED"), String.valueOf(failedPSNum))._().td()
-        .a(url("angel/parameterServersPage", "KILLED"), String.valueOf(killedPSNum))._().td()
-        .a(url("angel/parameterServersPage", "SUCCESS"), String.valueOf(successPSNum))._()._();
+      .a(url("angel/workerGroupsPage", "NEW"), String.valueOf(newGroupNum))._().td()
+      .a(url("angel/workerGroupsPage", "RUNNING"), String.valueOf(runningGroupNum))._().td()
+      .a(url("angel/workerGroupsPage", "FAILED"), String.valueOf(failedGroupNum))._().td()
+      .a(url("angel/workerGroupsPage", "KILLED"), String.valueOf(killedGroupNum))._().td()
+      .a(url("angel/workerGroupsPage", "SUCCESS"), String.valueOf(successGroupNum))._()._().tr()
+      .td("parameterservers").td()
+      .a(url("angel/parameterServersPage", "NEW"), String.valueOf(newPSNum))._().td()
+      .a(url("angel/parameterServersPage", "RUNNING"), String.valueOf(runningPSNum))._().td()
+      .a(url("angel/parameterServersPage", "FAILED"), String.valueOf(failedPSNum))._().td()
+      .a(url("angel/parameterServersPage", "KILLED"), String.valueOf(killedPSNum))._().td()
+      .a(url("angel/parameterServersPage", "SUCCESS"), String.valueOf(successPSNum))._()._();
 
     table._();
     div._();

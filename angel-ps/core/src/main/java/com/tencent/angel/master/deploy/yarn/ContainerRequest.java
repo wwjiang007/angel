@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.master.deploy.yarn;
 
@@ -24,31 +26,42 @@ import org.apache.hadoop.yarn.api.records.Resource;
  * Resource context for a Yarn container.
  */
 class ContainerRequest {
-  /**the task that asks for the container*/
+  /**
+   * the task that asks for the container
+   */
   final Id id;
-  
-  /**container resource quota*/
+
+  /**
+   * container resource quota
+   */
   final Resource capability;
-  
-  /**the expected host addresses, it used to local calculation*/
+
+  /**
+   * the expected host addresses, it used to local calculation
+   */
   final String[] hosts;
-  
-  /**the rack addresses for the expected hosts*/
+
+  /**
+   * the rack addresses for the expected hosts
+   */
   final String[] racks;
-  
-  /**resource priority*/
+
+  /**
+   * resource priority
+   */
   final Priority priority;
 
   /**
    * Create a ContainerRequest
-   * @param id the task that asks for the container
+   *
+   * @param id         the task that asks for the container
    * @param capability container resource quota
-   * @param hosts the expected host addresses
-   * @param racks the rack addresses for the expected hosts
-   * @param priority resource priority
+   * @param hosts      the expected host addresses
+   * @param racks      the rack addresses for the expected hosts
+   * @param priority   resource priority
    */
   public ContainerRequest(Id id, Resource capability, String[] hosts, String[] racks,
-      Priority priority) {
+    Priority priority) {
     this.id = id;
     this.capability = capability;
     this.hosts = hosts;
@@ -58,9 +71,10 @@ class ContainerRequest {
 
   /**
    * Create a ContainerRequest
-   * @param id the task that asks for the container
+   *
+   * @param id         the task that asks for the container
    * @param capability container resource quota
-   * @param priority resource priority
+   * @param priority   resource priority
    */
   public ContainerRequest(Id id, Resource capability, Priority priority) {
     this(id, capability, null, null, priority);

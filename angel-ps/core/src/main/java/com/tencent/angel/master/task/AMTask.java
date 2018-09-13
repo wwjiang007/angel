@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.master.task;
 
@@ -40,28 +42,44 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class AMTask {
   private static final Log LOG = LogFactory.getLog(AMTask.class);
-  /**task id*/
+  /**
+   * task id
+   */
   private final TaskId taskId;
-  
-  /**task state*/
+
+  /**
+   * task state
+   */
   private AMTaskState state;
-  
-  /**task iteration*/
+
+  /**
+   * task iteration
+   */
   private int iteration;
-  
-  /**matrix id to clock value map*/
+
+  /**
+   * matrix id to clock value map
+   */
   private final Int2IntOpenHashMap matrixIdToClockMap;
-  
-  /**task run progress in current iteration*/
+
+  /**
+   * task run progress in current iteration
+   */
   private float progress;
-  
-  /**task metrics*/
+
+  /**
+   * task metrics
+   */
   private final Map<String, String> metrics;
 
-  /**task startup time*/
+  /**
+   * task startup time
+   */
   private long startTime;
-  
-  /**task finish time*/
+
+  /**
+   * task finish time
+   */
   private long finishTime;
 
   private final Lock readLock;
@@ -92,6 +110,7 @@ public class AMTask {
 
   /**
    * get task id
+   *
    * @return TaskId task id
    */
   public TaskId getTaskId() {
@@ -100,6 +119,7 @@ public class AMTask {
 
   /**
    * get task state
+   *
    * @return AMTaskState task state
    */
   public AMTaskState getState() {
@@ -134,7 +154,7 @@ public class AMTask {
         }
         case COMMITING: {
           if (newState == AMTaskState.SUCCESS || newState == AMTaskState.FAILED
-              || newState == AMTaskState.KILLED) {
+            || newState == AMTaskState.KILLED) {
             state = newState;
           }
           break;
@@ -151,6 +171,7 @@ public class AMTask {
 
   /**
    * get the task progress in current iteration
+   *
    * @return float the task progress in current iteration
    */
   public float getProgress() {
@@ -164,6 +185,7 @@ public class AMTask {
 
   /**
    * update task information: iteration, clocks, counters, progress, startup time and finish time etc.
+   *
    * @param taskStateProto task information from worker
    */
   public void updateTaskState(TaskStateProto taskStateProto) {
@@ -237,6 +259,7 @@ public class AMTask {
 
   /**
    * get task startup time
+   *
    * @return long task startup time
    */
   public long getStartTime() {
@@ -250,6 +273,7 @@ public class AMTask {
 
   /**
    * get task finish time
+   *
    * @return long task finish time
    */
   public long getFinishTime() {
@@ -263,6 +287,7 @@ public class AMTask {
 
   /**
    * get the current iteration value
+   *
    * @return int the current iteration value
    */
   public int getIteration() {
@@ -274,13 +299,11 @@ public class AMTask {
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     try {
       readLock.lock();
       return "AMTask [taskId=" + taskId + ", state=" + state + ", iteration=" + iteration
-          + ", matrixIdToClockMap=" + matrixIdToClockMap.toString() + ", progress=" + progress
-          + "]";
+        + ", matrixIdToClockMap=" + matrixIdToClockMap.toString() + ", progress=" + progress + "]";
     } finally {
       readLock.unlock();
     }
@@ -288,6 +311,7 @@ public class AMTask {
 
   /**
    * get task metrics
+   *
    * @return Map<String, String> task metrics
    */
   public Map<String, String> getMetrics() {
@@ -303,8 +327,9 @@ public class AMTask {
 
   /**
    * update the clock value of the specified matrix
+   *
    * @param matrixId matrix id
-   * @param clock clock value
+   * @param clock    clock value
    */
   public void clock(int matrixId, int clock) {
     try {
@@ -317,6 +342,7 @@ public class AMTask {
 
   /**
    * update the task current iteration value
+   *
    * @param iteration the task current iteration value
    */
   public void iteration(int iteration) {
@@ -330,6 +356,7 @@ public class AMTask {
 
   /**
    * get all matrix clocks
+   *
    * @return Int2IntOpenHashMap  all matrix clocks
    */
   public Int2IntOpenHashMap getMatrixClocks() {
@@ -340,9 +367,10 @@ public class AMTask {
       readLock.unlock();
     }
   }
-  
+
   /**
    * get the clock of the specified matrix
+   *
    * @param matrixId the matrix id
    * @return int the clock of the matrix
    */
@@ -357,6 +385,7 @@ public class AMTask {
 
   /**
    * write the task state to a output stream
+   *
    * @param output the output stream
    */
   public void serialize(DataOutputStream output) throws IOException {
@@ -376,11 +405,12 @@ public class AMTask {
 
   /**
    * read the task state from a input stream
+   *
    * @param input the input stream
    */
   public void deserialize(DataInputStream input) throws IOException {
     try {
-      writeLock.lock();        
+      writeLock.lock();
       state = transformState(input.readUTF());
       iteration = input.readInt();
       int clockNum = input.readInt();

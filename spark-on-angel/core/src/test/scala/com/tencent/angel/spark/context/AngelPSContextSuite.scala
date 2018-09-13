@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -15,6 +15,7 @@
  *
  */
 
+
 package com.tencent.angel.spark.context
 
 import com.tencent.angel.spark.PSFunSuite
@@ -22,7 +23,6 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
 
 import com.tencent.angel.ml.matrix.RowType
-import com.tencent.angel.spark.models.vector.VectorType
 
 class AngelPSContextSuite extends PSFunSuite {
 
@@ -83,10 +83,10 @@ class AngelPSContextSuite extends PSFunSuite {
 
   test("doCreateVectorPool && doDestroyVectorPool") {
 
-    val thisPool = angel.createVectorPool(dim, capacity, VectorType.DENSE, -1)
+    val thisPool = angel.createVectorPool(dim, capacity, RowType.T_DOUBLE_DENSE, -1)
     val firstVector = thisPool.allocate()
 
-    assert(thisPool.vType == VectorType.DENSE)
+    assert(thisPool.rowType == RowType.T_DOUBLE_DENSE)
     assert(thisPool.size == 1)
     assert(thisPool.id == firstVector.poolId)
     assert(thisPool.dimension == firstVector.dimension)

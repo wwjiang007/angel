@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.webapp.page;
 
@@ -43,8 +45,7 @@ import static org.apache.hadoop.yarn.webapp.view.JQueryUI._TH;
 public class ParameterServersBlock extends HtmlBlock {
   final AMContext amContext;
 
-  @Inject
-  ParameterServersBlock(AMContext amctx) {
+  @Inject ParameterServersBlock(AMContext amctx) {
     amContext = amctx;
   }
 
@@ -75,15 +76,14 @@ public class ParameterServersBlock extends HtmlBlock {
     return stateSet;
   }
 
-  @Override
-  protected void render(Block html) {
+  @Override protected void render(Block html) {
     set(TITLE, join("Angel ParameterServers"));
 
     TABLE<Hamlet> table = html.table("#job");
     TR<THEAD<TABLE<Hamlet>>> headTr = table.thead().tr();
 
     headTr.th(_TH, "id").th(_TH, "state").th(_TH, "node address").th(_TH, "start time")
-        .th(_TH, "end time").th(_TH, "elapsed time").th(_TH, "log").th(_TH, "threadstack");
+      .th(_TH, "end time").th(_TH, "elapsed time").th(_TH, "log").th(_TH, "threadstack");
     headTr._()._();
 
     Set<PSAttemptStateInternal> stateSet = transformToInternalState($(PARAMETERSERVER_STATE));
@@ -91,7 +91,7 @@ public class ParameterServersBlock extends HtmlBlock {
     TBODY<TABLE<Hamlet>> tbody = table.tbody();
 
     for (AMParameterServer ps : amContext.getParameterServerManager().getParameterServerMap()
-        .values()) {
+      .values()) {
 
       Map<PSAttemptId, PSAttempt> psAttempts = ps.getPSAttempts();
       for (PSAttempt psAttempt : psAttempts.values()) {
@@ -105,35 +105,28 @@ public class ParameterServersBlock extends HtmlBlock {
           }
 
           if (psAttempt.getNodeHttpAddr() == null) {
-            tr.td(psAttempt.getId().toString())
-                .td($(PARAMETERSERVER_STATE))
-                .td("N/A")
-                .td(psAttempt.getLaunchTime() == 0 ? "N/A" : new Date(psAttempt.getLaunchTime())
-                    .toString())
-                .td(psAttempt.getFinishTime() == 0 ? "N/A" : new Date(psAttempt.getFinishTime())
-                    .toString()).td(elaspedTs == 0 ? "N/A" : new Date(elaspedTs).toString())
-                .td("N/A").td("N/A");
+            tr.td(psAttempt.getId().toString()).td($(PARAMETERSERVER_STATE)).td("N/A").td(
+              psAttempt.getLaunchTime() == 0 ?
+                "N/A" :
+                new Date(psAttempt.getLaunchTime()).toString()).td(psAttempt.getFinishTime() == 0 ?
+              "N/A" :
+              new Date(psAttempt.getFinishTime()).toString())
+              .td(elaspedTs == 0 ? "N/A" : new Date(elaspedTs).toString()).td("N/A").td("N/A");
             tr._();
           } else {
-            tr.td(psAttempt.getId().toString())
-                .td($(PARAMETERSERVER_STATE))
-                .td()
-                .a(url(MRWebAppUtil.getYARNWebappScheme(), psAttempt.getNodeHttpAddr()),
-                    psAttempt.getNodeHttpAddr())
-                ._()
-                .td(psAttempt.getLaunchTime() == 0 ? "N/A" : new Date(psAttempt.getLaunchTime())
-                    .toString())
-                .td(psAttempt.getFinishTime() == 0 ? "N/A" : new Date(psAttempt.getFinishTime())
-                    .toString())
-                .td(elaspedTs == 0 ? "N/A" : StringUtils.formatTime(elaspedTs))
-                .td()
-                .a(url(MRWebAppUtil.getYARNWebappScheme(), psAttempt.getNodeHttpAddr(), "node",
-                    "containerlogs", psAttempt.getContainerIdStr(), amContext.getUser().toString()),
-                    "log")
-                ._()
-                .td()
-                .a(url("/angel/parameterServerThreadStackPage/", psAttempt.getId().toString()),
-                    "psthreadstack")._();
+            tr.td(psAttempt.getId().toString()).td($(PARAMETERSERVER_STATE)).td()
+              .a(url(MRWebAppUtil.getYARNWebappScheme(), psAttempt.getNodeHttpAddr()),
+                psAttempt.getNodeHttpAddr())._().td(psAttempt.getLaunchTime() == 0 ?
+              "N/A" :
+              new Date(psAttempt.getLaunchTime()).toString()).td(psAttempt.getFinishTime() == 0 ?
+              "N/A" :
+              new Date(psAttempt.getFinishTime()).toString())
+              .td(elaspedTs == 0 ? "N/A" : StringUtils.formatTime(elaspedTs)).td().a(
+              url(MRWebAppUtil.getYARNWebappScheme(), psAttempt.getNodeHttpAddr(), "node",
+                "containerlogs", psAttempt.getContainerIdStr(), amContext.getUser().toString()),
+              "log")._().td()
+              .a(url("/angel/parameterServerThreadStackPage/", psAttempt.getId().toString()),
+                "psthreadstack")._();
 
 
             tr._();

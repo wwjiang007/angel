@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.localcluster;
 
@@ -31,20 +33,26 @@ import java.io.IOException;
  */
 public class LocalMaster extends Thread {
   private static final Log LOG = LogFactory.getLog(LocalMaster.class);
-  
-  /**Angel Application master*/
+
+  /**
+   * Angel Application master
+   */
   private final AngelApplicationMaster appMaster;
-  
-  /**Master attempt id*/
+
+  /**
+   * Master attempt id
+   */
   private final ApplicationAttemptId appAttemptId;
-  
+
   /**
    * Create a new LocalMaster
+   *
    * @param appAttemptId
    * @throws IllegalArgumentException
    * @throws IOException
    */
-  public LocalMaster(ApplicationAttemptId appAttemptId) throws IllegalArgumentException, IOException {
+  public LocalMaster(ApplicationAttemptId appAttemptId)
+    throws IllegalArgumentException, IOException {
     this.appAttemptId = appAttemptId;
     LocalClusterContext clusterContext = LocalClusterContext.get();
     Configuration conf = clusterContext.getConf();
@@ -52,13 +60,12 @@ public class LocalMaster extends Thread {
     String appName = conf.get(AngelConf.ANGEL_JOB_NAME, "local-test");
 
     appMaster =
-        new AngelApplicationMaster(conf, appName, appAttemptId,
-            clusterContext.getContainerId(), clusterContext.getLocalHost(),
-            clusterContext.getPort(), clusterContext.getHttpPort(), System.currentTimeMillis(), new Credentials());
+      new AngelApplicationMaster(conf, appName, appAttemptId, clusterContext.getContainerId(),
+        clusterContext.getLocalHost(), clusterContext.getPort(), clusterContext.getHttpPort(),
+        System.currentTimeMillis(), new Credentials());
   }
-  
-  @Override
-  public void run() {
+
+  @Override public void run() {
     try {
       appMaster.initAndStart();
     } catch (Exception e) {
@@ -69,6 +76,7 @@ public class LocalMaster extends Thread {
 
   /**
    * Get Angel Application Master
+   *
    * @return Angel Application Master
    */
   public AngelApplicationMaster getAppMaster() {

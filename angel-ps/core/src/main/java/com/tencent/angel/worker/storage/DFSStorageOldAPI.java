@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
@@ -32,7 +34,7 @@ import java.io.IOException;
 /**
  * use new mr1 api
  *
- * @param <KEY> key type
+ * @param <KEY>   key type
  * @param <VALUE> value type
  */
 public class DFSStorageOldAPI<KEY, VALUE> {
@@ -44,24 +46,20 @@ public class DFSStorageOldAPI<KEY, VALUE> {
     this.split = split;
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void initReader() throws IOException {
+  @SuppressWarnings({"rawtypes", "unchecked"}) public void initReader() throws IOException {
     try {
       Configuration conf = WorkerContext.get().getConf();
       String inputFormatClassName =
-          conf.get(AngelConf.ANGEL_INPUTFORMAT_CLASS,
-              AngelConf.DEFAULT_ANGEL_INPUTFORMAT_CLASS);
+        conf.get(AngelConf.ANGEL_INPUTFORMAT_CLASS, AngelConf.DEFAULT_ANGEL_INPUTFORMAT_CLASS);
 
       Class<? extends org.apache.hadoop.mapred.InputFormat> inputFormatClass =
-          (Class<? extends org.apache.hadoop.mapred.InputFormat>) Class
-              .forName(inputFormatClassName);
+        (Class<? extends org.apache.hadoop.mapred.InputFormat>) Class.forName(inputFormatClassName);
 
       org.apache.hadoop.mapred.InputFormat inputFormat =
-          ReflectionUtils.newInstance(inputFormatClass,
-              new JobConf(conf));
+        ReflectionUtils.newInstance(inputFormatClass, new JobConf(conf));
 
       org.apache.hadoop.mapred.RecordReader<KEY, VALUE> recordReader =
-          inputFormat.getRecordReader(split, new JobConf(conf), Reporter.NULL);
+        inputFormat.getRecordReader(split, new JobConf(conf), Reporter.NULL);
 
       setReader(new DFSReaderOldAPI(recordReader));
     } catch (Exception x) {
@@ -87,15 +85,13 @@ public class DFSStorageOldAPI<KEY, VALUE> {
       this.innerReader = reader;
     }
 
-    @Override
-    public void reset() throws IOException {
+    @Override public void reset() throws IOException {
       close();
       currentKey = null;
       currentValue = null;
     }
 
-    @Override
-    public boolean nextKeyValue() throws IOException, InterruptedException {
+    @Override public boolean nextKeyValue() throws IOException, InterruptedException {
       if (currentKey == null) {
         currentKey = innerReader.createKey();
         currentValue = innerReader.createValue();
@@ -105,23 +101,19 @@ public class DFSStorageOldAPI<KEY, VALUE> {
       return hasNext;
     }
 
-    @Override
-    public KEY getCurrentKey() throws IOException, InterruptedException {
+    @Override public KEY getCurrentKey() throws IOException, InterruptedException {
       return currentKey;
     }
 
-    @Override
-    public VALUE getCurrentValue() throws IOException, InterruptedException {
+    @Override public VALUE getCurrentValue() throws IOException, InterruptedException {
       return currentValue;
     }
 
-    @Override
-    public void close() throws IOException {
+    @Override public void close() throws IOException {
       innerReader.close();
     }
 
-    @Override
-    public float getProgress() {
+    @Override public float getProgress() {
       try {
         return innerReader.getProgress();
       } catch (IOException e) {

@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.master;
 
@@ -69,8 +71,7 @@ public class TaskManagerTest {
     PropertyConfigurator.configure("../conf/log4j.properties");
   }
 
-  @BeforeClass
-  public static void setup() throws Exception {
+  @BeforeClass public static void setup() throws Exception {
     try {
       // set basic configuration keys
       Configuration conf = new Configuration();
@@ -134,8 +135,7 @@ public class TaskManagerTest {
     }
   }
 
-  @Test
-  public void testTaskIteration() throws Exception {
+  @Test public void testTaskIteration() throws Exception {
     try {
       LOG.info("===========================testTaskIteration===============================");
       AngelApplicationMaster angelAppMaster = LocalClusterContext.get().getMaster().getAppMaster();
@@ -164,14 +164,13 @@ public class TaskManagerTest {
       assertEquals(worker0Attempt0.getMinIteration(), 1);
       assertEquals(worker0.getMinIteration(), 1);
       assertEquals(workerGroup0.getMinIteration(), 1);
-    } catch (Exception x){
+    } catch (Exception x) {
       LOG.error("run testTaskIteration failed ", x);
       throw x;
     }
   }
 
-  @Test
-  public void testTaskMatrixClock() throws ServiceException {
+  @Test public void testTaskMatrixClock() throws ServiceException {
     try {
       LOG.info("===========================testTaskMatrixClock===============================");
       AngelApplicationMaster angelAppMaster = LocalClusterContext.get().getMaster().getAppMaster();
@@ -210,8 +209,7 @@ public class TaskManagerTest {
     }
   }
 
-  @AfterClass
-  public static void stop() throws AngelException {
+  @AfterClass public static void stop() throws AngelException {
     try {
       LOG.info("stop local cluster");
       angelClient.stop();

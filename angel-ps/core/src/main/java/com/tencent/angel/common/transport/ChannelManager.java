@@ -1,24 +1,27 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.common.transport;
 
 import com.tencent.angel.common.location.Location;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
+
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeoutException;
@@ -60,7 +63,7 @@ public class ChannelManager {
    * @param bootstrap netty client bootstrap
    */
   public ChannelManager(Bootstrap bootstrap) {
-   this(bootstrap,5);
+    this(bootstrap, 5);
   }
 
   /**
@@ -70,7 +73,7 @@ public class ChannelManager {
    */
   public ChannelManager(Bootstrap bootstrap, int maxPoolSize) {
     this.bootstrap = bootstrap;
-    this.locToChannelPoolMap = new HashMap<Location, GenericObjectPool<Channel>>();
+    this.locToChannelPoolMap = new HashMap<>();
     this.locToChannelMap = new HashMap<>();
     this.lock = new ReentrantLock();
     this.maxPoolSize = maxPoolSize;
@@ -78,6 +81,7 @@ public class ChannelManager {
 
   /**
    * Get the channel pool for the location, if the pool does not exist, create a new for it
+   *
    * @param loc server location
    * @return channel pool
    */
@@ -87,6 +91,7 @@ public class ChannelManager {
 
   /**
    * Get the channel for the location, if the pool does not exist, create a new for it
+   *
    * @param loc server location
    * @return channel
    */
@@ -105,13 +110,14 @@ public class ChannelManager {
 
   /**
    * Release channel for server
+   *
    * @param loc server location
    */
   public void releaseChannel(Location loc) {
     try {
       lock.lock();
       Channel channel = locToChannelMap.get(loc);
-      if(channel != null) {
+      if (channel != null) {
         channel.close();
       }
       locToChannelMap.remove(loc);
@@ -121,8 +127,7 @@ public class ChannelManager {
   }
 
   private Channel createChannel(Location loc) throws Exception {
-    ChannelFuture connectFuture =
-      bootstrap.connect(loc.getIp(), loc.getPort());
+    ChannelFuture connectFuture = bootstrap.connect(loc.getIp(), loc.getPort());
     int ticks = 10000;
     while (ticks-- > 0) {
       if (connectFuture.isDone()) {
@@ -181,13 +186,13 @@ public class ChannelManager {
   public void closeChannelPool(Location loc) {
     try {
       GenericObjectPool<Channel> pool = locToChannelPoolMap.get(loc);
-      if(pool == null) {
+      if (pool == null) {
         return;
       } else {
         try {
           pool.close();
         } catch (Exception e) {
-          LOG.error("Close channel for location " + loc +" error ", e);
+          LOG.error("Close channel for location " + loc + " error ", e);
         }
       }
     } finally {
@@ -237,7 +242,7 @@ public class ChannelManager {
   }
 
   public void printPools() {
-    for(Entry<Location, GenericObjectPool<Channel>> entry : locToChannelPoolMap.entrySet()) {
+    for (Entry<Location, GenericObjectPool<Channel>> entry : locToChannelPoolMap.entrySet()) {
       LOG.info("location " + entry.getKey() + ", pool=" + poolToString(entry.getValue()));
     }
   }

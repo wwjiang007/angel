@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.psagent.clock;
 
@@ -27,16 +29,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * The partition clocks cache for a matrix
  */
 public class MatrixClockCache {
-  /**matrix id*/
+  /**
+   * matrix id
+   */
   private final int matrixId;
-  
-  /**matrix partition key to clock map*/
+
+  /**
+   * matrix partition key to clock map
+   */
   private final ConcurrentHashMap<PartitionKey, Integer> partitionClockMap;
 
   /**
    * Create a new MatrixClockCache instance.
    *
-   * @param matrixId matrix id
+   * @param matrixId   matrix id
    * @param partitions matrix partitions
    */
   public MatrixClockCache(int matrixId, List<PartitionKey> partitions) {
@@ -59,7 +65,7 @@ public class MatrixClockCache {
 
   /**
    * Get minimal clock of the given partitions
-   * 
+   *
    * @param parts partitions
    * @return int minimal clock of the given partitions
    */
@@ -79,7 +85,7 @@ public class MatrixClockCache {
 
   /**
    * Get a partition clock
-   * 
+   *
    * @param partKey partition key
    * @return int clock
    */
@@ -93,9 +99,9 @@ public class MatrixClockCache {
 
   /**
    * Update clock of a partition
-   * 
+   *
    * @param partKey partition key
-   * @param clock clock value
+   * @param clock   clock value
    */
   public void update(PartitionKey partKey, int clock) {
     partitionClockMap.put(partKey, clock);
@@ -103,12 +109,13 @@ public class MatrixClockCache {
 
   /**
    * Get minimal clock of the given row
-   * 
+   *
    * @param rowIndex row index
    * @return int minimal clock of the given row
    */
   public int getClock(int rowIndex) {
-    return getMinClock(PSAgentContext.get().getMatrixMetaManager().getPartitions(matrixId, rowIndex));
+    return getMinClock(
+      PSAgentContext.get().getMatrixMetaManager().getPartitions(matrixId, rowIndex));
   }
 
   /**

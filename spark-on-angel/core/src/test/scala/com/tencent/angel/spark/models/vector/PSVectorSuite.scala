@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -15,10 +15,13 @@
  *
  */
 
+
 package com.tencent.angel.spark.models.vector
 
+import com.tencent.angel.ml.math2.vector.IntDoubleVector
 import com.tencent.angel.spark.context.{AngelPSContext, PSContext}
-import com.tencent.angel.spark.{PSFunSuite, SharedPSContext, Utils}
+import com.tencent.angel.spark.{PSFunSuite, SharedPSContext}
+import com.tencent.angel.spark.Utils
 
 class PSVectorSuite extends PSFunSuite with SharedPSContext {
 
@@ -38,17 +41,17 @@ class PSVectorSuite extends PSFunSuite with SharedPSContext {
     super.afterAll()
   }
 
-  test("toRemote") {
-    val remoteVector = _psVector.toCache
-
-    _psVector.pull
-    Utils.assertSameElement(remoteVector.pullFromCache(), _psVector.pull.values)
-  }
+  //  test("toRemote") {
+  //    val remoteVector = _psVector.toCache
+  //
+  //    _psVector.pull
+  //    Utils.assertSameElement(remoteVector.pullFromCache(), _psVector.pull.values)
+  //  }
 
   test("toBreeze") {
     val brzVector = _psVector.toBreeze
 
-    Utils.assertSameElement(brzVector.pull, _psVector.pull.values)
+    Utils.assertSameElement(brzVector.pull(), _psVector.pull().asInstanceOf[IntDoubleVector].getStorage.getValues)
   }
 
   test("delete") {
@@ -78,11 +81,10 @@ class PSVectorSuite extends PSFunSuite with SharedPSContext {
     assert(dVector.poolId != _psVector.poolId)
   }
 
-  /**
-  *test("new sparse vector") {
-    *val sVector = PSVector.sparse(dim, capacity)
-    *assert(sVector.isInstanceOf[SparsePSVector])
-  *}
-   */
+
+  test("new sparse vector") {
+    val sVector = PSVector.sparse(dim, capacity)
+    assert(sVector.isInstanceOf[SparsePSVector])
+  }
 
 }

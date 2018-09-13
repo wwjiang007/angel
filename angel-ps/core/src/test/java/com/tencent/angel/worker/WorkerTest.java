@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.worker;
 
@@ -62,8 +64,7 @@ import java.util.Map;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(MockitoJUnitRunner.class)
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@RunWith(MockitoJUnitRunner.class) @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class WorkerTest {
   private static final Log LOG = LogFactory.getLog(MasterServiceTest.class);
   private static final String LOCAL_FS = LocalFileSystem.DEFAULT_FS;
@@ -86,8 +87,7 @@ public class WorkerTest {
     PropertyConfigurator.configure("../conf/log4j.properties");
   }
 
-  @BeforeClass
-  public static void setup() throws Exception {
+  @BeforeClass public static void setup() throws Exception {
     try {
       //set basic configuration keys
       conf = new Configuration();
@@ -152,8 +152,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testWorkerTaskManager() throws Exception {
+  @Test public void testWorkerTaskManager() throws Exception {
     try {
       LOG.info("===========================testWorkerInitAndStart===============================");
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
@@ -171,9 +170,9 @@ public class WorkerTest {
       assertEquals(2, taskManager.getTaskCount());
 
       Task task_0 = taskManager.getRunningTask().get(task0Id);
-      assertTrue( task_0 != null);
+      assertTrue(task_0 != null);
       Task task_1 = taskManager.getRunningTask().get(task1Id);
-      assertTrue( task_1 != null);
+      assertTrue(task_1 != null);
 
       assertTrue(taskManager.isAllTaskRunning());
     } catch (Exception x) {
@@ -182,8 +181,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testWorker() throws Exception {
+  @Test public void testWorker() throws Exception {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -203,7 +201,8 @@ public class WorkerTest {
       assertEquals(worker0Attempt0Id, waId);
       assertTrue(worker0Attempt0Id.equals(waId));
 
-      assertEquals(ProtobufUtil.convertToIdProto(worker0Attempt0Id), worker.getWorkerAttemptIdProto());
+      assertEquals(ProtobufUtil.convertToIdProto(worker0Attempt0Id),
+        worker.getWorkerAttemptIdProto());
 
       //tet worker initFinished
       assertTrue(worker.isWorkerInitFinished());
@@ -216,15 +215,14 @@ public class WorkerTest {
       String localIp = NetUtils.getRealLocalIP();
       assertEquals(localIp, location.getIp());
       int port = location.getPort();
-      assertTrue(port >  0 && port < 655355);
+      assertTrue(port > 0 && port < 655355);
     } catch (Exception x) {
       LOG.error("run testWorker failed ", x);
       throw x;
     }
   }
 
-  @Test
-  public void testApplicaiotnInfo() throws Exception {
+  @Test public void testApplicaiotnInfo() throws Exception {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -241,8 +239,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testMaster() throws Exception {
+  @Test public void testMaster() throws Exception {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -254,7 +251,7 @@ public class WorkerTest {
       Location masterLoc =
         LocalClusterContext.get().getMaster().getAppMaster().getAppContext().getMasterService()
           .getLocation();
-      assertEquals(masterLoc ,worker.getMasterLocation());
+      assertEquals(masterLoc, worker.getMasterLocation());
 
       //masterClient
       MasterClient masterClient = worker.getPSAgent().getMasterClient();
@@ -267,8 +264,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testPsAgent() throws Exception {
+  @Test public void testPsAgent() throws Exception {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -287,8 +283,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testDdataBlocker() throws Exception {
+  @Test public void testDdataBlocker() throws Exception {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -303,8 +298,7 @@ public class WorkerTest {
     }
   }
 
-  @Test
-  public void testWorkerGroup() throws Exception {
+  @Test public void testWorkerGroup() throws Exception {
     try {
       LOG.info("===========================testWorkerGroup===============================");
       worker = LocalClusterContext.get().getWorker(worker0Attempt0Id).getWorker();
@@ -319,15 +313,14 @@ public class WorkerTest {
       Map<WorkerId, WorkerRef> workerMap = workerGroup.getWorkerMap();
       assertTrue(workerMap != null);
       assertEquals(1, workerMap.size());
-      WorkerRef workerRef =workerMap.get(worker0Attempt0Id);
+      WorkerRef workerRef = workerMap.get(worker0Attempt0Id);
     } catch (Exception x) {
       LOG.error("run testWorkerGroup failed ", x);
       throw x;
     }
   }
 
-  @Test
-  public void testWorkerContext() throws IOException {
+  @Test public void testWorkerContext() throws IOException {
     try {
       localWorker = LocalClusterContext.get().getWorker(worker0Attempt0Id);
       worker = localWorker.getWorker();
@@ -349,7 +342,7 @@ public class WorkerTest {
       Location location = context.getLocation();
       assertEquals(localIp, location.getIp());
       int port = location.getPort();
-      assertTrue(port >  0 && port < 655355);
+      assertTrue(port > 0 && port < 655355);
 
       //workerGroup info
       assertEquals(group0Id, context.getWorkerGroupId());
@@ -362,7 +355,8 @@ public class WorkerTest {
       WorkerId wid = context.getWorkerId();
       assertEquals(worker0Id, wid);
       assertEquals(worker0Attempt0Id, context.getWorkerAttemptId());
-      assertEquals(ProtobufUtil.convertToIdProto(worker0Attempt0Id), context.getWorkerAttemptIdProto());
+      assertEquals(ProtobufUtil.convertToIdProto(worker0Attempt0Id),
+        context.getWorkerAttemptIdProto());
 
       Map<String, String> workerMetrics = context.getWorkerMetrics();
       assertTrue(workerMetrics != null);
@@ -380,8 +374,7 @@ public class WorkerTest {
     }
   }
 
-  @AfterClass
-  public static void stop() throws IOException{
+  @AfterClass public static void stop() throws IOException {
     try {
       LOG.info("stop local cluster");
       angelClient.stop();

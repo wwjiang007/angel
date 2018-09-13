@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.common.location;
 
@@ -45,12 +47,12 @@ public class LocationManager {
   /**
    * All ps ids
    */
-  private volatile ParameterServerId [] psIds;
+  private volatile ParameterServerId[] psIds;
 
   /**
    * Create a location manager
    */
-  public LocationManager(){
+  public LocationManager() {
     this.masterLocation = null;
     this.psIdToLocMap = new ConcurrentHashMap<>();
     this.workerIdToLocMap = new ConcurrentHashMap<>();
@@ -58,6 +60,7 @@ public class LocationManager {
 
   /**
    * Get master location
+   *
    * @return master location
    */
   public Location getMasterLocation() {
@@ -66,6 +69,7 @@ public class LocationManager {
 
   /**
    * Get a ps location
+   *
    * @param psId ps id
    * @return ps location
    */
@@ -75,6 +79,7 @@ public class LocationManager {
 
   /**
    * Get a worker location
+   *
    * @param workerId worker id
    * @return worker location
    */
@@ -84,6 +89,7 @@ public class LocationManager {
 
   /**
    * Set master location
+   *
    * @param masterLocation master location
    */
   public void setMasterLocation(Location masterLocation) {
@@ -92,11 +98,12 @@ public class LocationManager {
 
   /**
    * Set a ps location
+   *
    * @param psId ps id
-   * @param loc ps location
+   * @param loc  ps location
    */
   public void setPsLocation(ParameterServerId psId, Location loc) {
-    if(loc == null) {
+    if (loc == null) {
       psIdToLocMap.remove(psId);
     } else {
       psIdToLocMap.put(psId, loc);
@@ -105,8 +112,9 @@ public class LocationManager {
 
   /**
    * Set worker location
+   *
    * @param workerId worker id
-   * @param loc worker location
+   * @param loc      worker location
    */
   public void setWorkerLocation(WorkerId workerId, Location loc) {
     workerIdToLocMap.put(workerId, loc);
@@ -114,6 +122,7 @@ public class LocationManager {
 
   /**
    * Set all ps ids
+   *
    * @param psIds all ps ids
    */
   public void setPsIds(ParameterServerId[] psIds) {
@@ -122,6 +131,7 @@ public class LocationManager {
 
   /**
    * Get all ps ids
+   *
    * @return all ps ids
    */
   public ParameterServerId[] getPsIds() {
@@ -133,6 +143,7 @@ public class LocationManager {
 
   /**
    * Are all pss registered
+   *
    * @return true mean all pss have registered to master
    */
   public boolean isAllPsRegisted() {
@@ -141,6 +152,7 @@ public class LocationManager {
 
   /**
    * Get all ps locations
+   *
    * @return all ps locations
    */
   public Map<ParameterServerId, Location> getPsLocations() {

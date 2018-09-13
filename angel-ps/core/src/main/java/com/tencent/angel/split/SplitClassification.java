@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
 
 package com.tencent.angel.split;
 
@@ -36,14 +38,14 @@ public class SplitClassification {
   private List<org.apache.hadoop.mapreduce.InputSplit> splitsNewAPI = null;
 
   // private Configuration conf;
-  
-  public SplitClassification(){
-    
+
+  public SplitClassification() {
+
   }
 
   public SplitClassification(List<org.apache.hadoop.mapred.InputSplit> splitsOldAPI,
-      List<org.apache.hadoop.mapreduce.InputSplit> splitsNewAPI, String[] locations,
-      boolean useNewAPI) {
+    List<org.apache.hadoop.mapreduce.InputSplit> splitsNewAPI, String[] locations,
+    boolean useNewAPI) {
     this.locations = locations;
     this.splitsOldAPI = splitsOldAPI;
     this.splitsNewAPI = splitsNewAPI;
@@ -51,7 +53,7 @@ public class SplitClassification {
   }
 
   public SplitClassification(List<org.apache.hadoop.mapred.InputSplit> splitsOldAPI,
-      List<org.apache.hadoop.mapreduce.InputSplit> splitsNewAPI, boolean useNewAPI) {
+    List<org.apache.hadoop.mapreduce.InputSplit> splitsNewAPI, boolean useNewAPI) {
     this.splitsOldAPI = splitsOldAPI;
     this.splitsNewAPI = splitsNewAPI;
     this.useNewAPI = useNewAPI;
@@ -113,28 +115,27 @@ public class SplitClassification {
     return splitsOldAPI.get(splitIndex);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "SplitClassification [locations=" + Arrays.toString(locations) + ", useNewAPI="
-        + useNewAPI + ", splitsOldAPI=" + splitsOldAPI + ", splitsNewAPI=" + splitsNewAPI + "]";
+      + useNewAPI + ", splitsOldAPI=" + splitsOldAPI + ", splitsNewAPI=" + splitsNewAPI + "]";
   }
-  
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void serialize(DataOutputStream output) throws IOException {
+
+  @SuppressWarnings({"rawtypes", "unchecked"}) public void serialize(DataOutputStream output)
+    throws IOException {
     output.writeBoolean(useNewAPI);
-    if(useNewAPI) {
+    if (useNewAPI) {
       int size = splitsNewAPI.size();
       output.writeInt(size);
       output.writeInt(locations.length);
-      for(int i = 0; i < locations.length; i++) {
+      for (int i = 0; i < locations.length; i++) {
         output.writeUTF(locations[i]);
       }
-      if(size > 0) {
+      if (size > 0) {
         output.writeUTF(splitsNewAPI.get(0).getClass().getName());
         SerializationFactory factory = new SerializationFactory(new Configuration());
         Serializer serializer = factory.getSerializer(splitsNewAPI.get(0).getClass());
-        serializer.open(output);       
-        for(int i = 0; i < size; i++){          
+        serializer.open(output);
+        for (int i = 0; i < size; i++) {
           serializer.serialize(splitsNewAPI.get(i));
         }
       }
@@ -142,57 +143,57 @@ public class SplitClassification {
       int size = splitsOldAPI.size();
       output.writeInt(size);
       output.writeInt(locations.length);
-      for(int i = 0; i < size; i++) {
+      for (int i = 0; i < size; i++) {
         output.writeUTF(locations[i]);
       }
-      if(size > 0) {
-        output.writeUTF(splitsOldAPI.get(0).getClass().getName());      
+      if (size > 0) {
+        output.writeUTF(splitsOldAPI.get(0).getClass().getName());
         SerializationFactory factory = new SerializationFactory(new Configuration());
         Serializer serializer = factory.getSerializer(splitsOldAPI.get(0).getClass());
-        serializer.open(output);       
-        for(int i = 0; i < size; i++){          
+        serializer.open(output);
+        for (int i = 0; i < size; i++) {
           serializer.serialize(splitsOldAPI.get(i));
         }
       }
     }
   }
-  
-  @SuppressWarnings("unchecked")
-  public void deserialize(DataInputStream input) throws IOException, ClassNotFoundException {
+
+  @SuppressWarnings("unchecked") public void deserialize(DataInputStream input)
+    throws IOException, ClassNotFoundException {
     useNewAPI = input.readBoolean();
     int size = input.readInt();
     int locSize = input.readInt();
     locations = new String[locSize];
-    for(int i = 0; i < locSize; i++) {
+    for (int i = 0; i < locSize; i++) {
       locations[i] = input.readUTF();
     }
-    
-    if(useNewAPI) {
-      if(size > 0) {
+
+    if (useNewAPI) {
+      if (size > 0) {
         String splitClass = input.readUTF();
         splitsNewAPI = new ArrayList<org.apache.hadoop.mapreduce.InputSplit>(size);
         SerializationFactory factory = new SerializationFactory(new Configuration());
-        Deserializer<? extends org.apache.hadoop.mapreduce.InputSplit> deSerializer =
-            factory.getDeserializer((Class<? extends org.apache.hadoop.mapreduce.InputSplit>) Class
-                .forName(splitClass));
+        Deserializer<? extends org.apache.hadoop.mapreduce.InputSplit> deSerializer = factory
+          .getDeserializer(
+            (Class<? extends org.apache.hadoop.mapreduce.InputSplit>) Class.forName(splitClass));
 
         deSerializer.open(input);
-        for(int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
           splitsNewAPI.add(deSerializer.deserialize(null));
         }
       }
 
     } else {
-      if(size > 0) {
+      if (size > 0) {
         String splitClass = input.readUTF();
         splitsOldAPI = new ArrayList<org.apache.hadoop.mapred.InputSplit>(size);
         SerializationFactory factory = new SerializationFactory(new Configuration());
-        Deserializer<? extends org.apache.hadoop.mapred.InputSplit> deSerializer =
-            factory.getDeserializer((Class<? extends org.apache.hadoop.mapred.InputSplit>) Class
-                .forName(splitClass));
+        Deserializer<? extends org.apache.hadoop.mapred.InputSplit> deSerializer = factory
+          .getDeserializer(
+            (Class<? extends org.apache.hadoop.mapred.InputSplit>) Class.forName(splitClass));
 
         deSerializer.open(input);
-        for(int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
           splitsOldAPI.add(deSerializer.deserialize(null));
         }
       }

@@ -1,18 +1,21 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is
- * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ *
  */
+
+
 package com.tencent.angel.utils;
 
 /**
@@ -20,7 +23,9 @@ package com.tencent.angel.utils;
  */
 public class MurmurHash3 {
 
-  /** Returns the MurmurHash3_x86_32 hash. */
+  /**
+   * Returns the MurmurHash3_x86_32 hash.
+   */
   public static int murmurhash3_x86_32(byte[] data, int offset, int len, int seed) {
 
     final int c1 = 0xcc9e2d51;
@@ -32,8 +37,8 @@ public class MurmurHash3 {
     for (int i = offset; i < roundedEnd; i += 4) {
       // little endian load order
       int k1 =
-          (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16)
-              | (data[i + 3] << 24);
+        (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16) | (data[i + 3]
+          << 24);
       k1 *= c1;
       k1 = (k1 << 15) | (k1 >>> 17); // ROTL32(k1,15);
       k1 *= c2;
@@ -139,7 +144,7 @@ public class MurmurHash3 {
 
   private static int getBlock32(byte[] data, int i) {
     return unsignedByte(data[i]) | unsignedByte(data[i + 1]) << 8 | unsignedByte(data[i + 2]) << 16
-        | unsignedByte(data[i + 3]) << 24;
+      | unsignedByte(data[i + 3]) << 24;
   }
 
   private static long getBlock64(byte[] data, int i) {

@@ -1,18 +1,20 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
- * 
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
- * 
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ *
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
- * 
- * https://opensource.org/licenses/BSD-3-Clause
- * 
+ *
+ * https://opensource.org/licenses/Apache-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
+
 
 package com.tencent.angel.worker.storage;
 
@@ -50,8 +52,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     memoryCheckCounter = 0;
   }
 
-  @Override
-  public VALUE read() throws IOException {
+  @Override public VALUE read() throws IOException {
     VALUE value = null;
     readIndex++;
     if (memoryReadInUse) {
@@ -69,8 +70,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     return diskStorage.read();
   }
 
-  @Override
-  protected boolean hasNext() throws IOException {
+  @Override protected boolean hasNext() throws IOException {
     if (readIndex < memoryStorage.writeIndex) {
       return true;
     } else {
@@ -83,8 +83,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public VALUE get(int index) throws IOException {
+  @Override public VALUE get(int index) throws IOException {
     if (index < memoryStorage.writeIndex) {
       return memoryStorage.get(index);
     } else {
@@ -92,8 +91,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void put(VALUE value) throws IOException {
+  @Override public void put(VALUE value) throws IOException {
     if (memoryWriteInUse) {
       memoryStorage.put(value);
       writeIndex++;
@@ -112,8 +110,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void resetReadIndex() throws IOException {
+  @Override public void resetReadIndex() throws IOException {
     readIndex = 0;
     if (memoryReadInUse) {
       memoryStorage.resetReadIndex();
@@ -124,8 +121,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public void clean() throws IOException {
+  @Override public void clean() throws IOException {
     memoryStorage.clean();
     if (diskStorage != null) {
       diskStorage.clean();
@@ -137,13 +133,11 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
 
   }
 
-  @Override
-  public void shuffle() throws IOException {
+  @Override public void shuffle() throws IOException {
     memoryStorage.shuffle();
   }
 
-  @Override
-  public void flush() throws IOException {
+  @Override public void flush() throws IOException {
     if (memoryWriteInUse) {
       memoryStorage.flush();
     } else {
@@ -151,8 +145,7 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public DataBlock<VALUE> slice(int startIndex, int length) throws IOException {
+  @Override public DataBlock<VALUE> slice(int startIndex, int length) throws IOException {
     if (startIndex + length <= memoryStorage.writeIndex) {
       return memoryStorage.slice(startIndex, length);
     } else {
@@ -160,12 +153,10 @@ public class MemoryAndDiskDataBlock<VALUE> extends DataBlock<VALUE> {
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "MemoryAndDiskDataBlock [memoryStorage=" + memoryStorage + ", diskStorage=" + diskStorage
-        + ", memoryWriteInUse=" + memoryWriteInUse + ", memoryReadInUse=" + memoryReadInUse
-        + ", memoryCheckInterval=" + memoryCheckInterval + ", memoryCheckCounter="
-        + memoryCheckCounter + ", taskIndex=" + taskIndex + ", toString()=" + super.toString()
-        + "]";
+      + ", memoryWriteInUse=" + memoryWriteInUse + ", memoryReadInUse=" + memoryReadInUse
+      + ", memoryCheckInterval=" + memoryCheckInterval + ", memoryCheckCounter="
+      + memoryCheckCounter + ", taskIndex=" + taskIndex + ", toString()=" + super.toString() + "]";
   }
 }

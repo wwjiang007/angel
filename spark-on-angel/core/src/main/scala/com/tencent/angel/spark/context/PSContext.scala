@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making Angel available.
  *
- * Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
  * compliance with the License. You may obtain a copy of the License at
  *
- * https://opensource.org/licenses/BSD-3-Clause
+ * https://opensource.org/licenses/Apache-2.0
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
@@ -15,28 +15,36 @@
  *
  */
 
+
 package com.tencent.angel.spark.context
 
 import com.tencent.angel.AngelDeployMode
-import com.tencent.angel.ml.matrix.MatrixMeta
-import com.tencent.angel.spark.models.matrix.MatrixType.MatrixType
-import com.tencent.angel.spark.models.vector.VectorType.VectorType
+import com.tencent.angel.ml.matrix.{MatrixMeta, RowType}
 import com.tencent.angel.spark.models.vector.PSVector
 import org.apache.spark._
-
 import scala.collection.Map
 
-abstract class PSContext {
 
+abstract class PSContext {
   private[spark] def conf: Map[String, String]
+
   protected def stop()
 
-  def createDenseMatrix(rows: Int, cols: Long, rowInBlock: Int, colInBlock: Long): MatrixMeta
-  def createSparseMatrix(rows: Int, cols: Long, range: Long, rowInBlock: Int, colInBlock: Long): MatrixMeta
+  def createMatrix(rows: Int, cols: Long, validIndexNum: Long, rowInBlock: Int, colInBlock: Long,
+                   rowType: RowType, partitionSource: String): MatrixMeta
+
+  def createDenseMatrix(rows: Int, cols: Long, rowInBlock: Int, colInBlock: Long,
+                        rowType: RowType = RowType.T_DOUBLE_DENSE): MatrixMeta
+
+  def createSparseMatrix(rows: Int, cols: Long, range: Long, rowInBlock: Int, colInBlock: Long,
+                         rowType: RowType = RowType.T_DOUBLE_SPARSE): MatrixMeta
+
   def destroyMatrix(matrixId: Int)
 
-  def createVector(dim: Long, t: VectorType, poolCapacity: Int, range: Long): PSVector
+  def createVector(dim: Long, t: RowType, poolCapacity: Int, range: Long): PSVector
+
   def duplicateVector(originVector: PSVector): PSVector
+
   def destroyVector(vector: PSVector)
 
   def destroyVectorPool(vector: PSVector): Unit
@@ -59,7 +67,7 @@ object PSContext {
     _instance
   }
 
-  def instance() : PSContext = {
+  def instance(): PSContext = {
     if (_instance == null) {
       classOf[PSContext].synchronized {
         if (_instance == null) {
@@ -78,8 +86,8 @@ object PSContext {
   }
 
   /**
-   * Clean up PSContext.
-   */
+    * Clean up PSContext.
+    */
   def stop(): Unit = {
     PSContext._instance.stop()
     PSContext._instance = null
@@ -109,4 +117,3 @@ object PSContext {
     if (tc == null) -1 else tc.partitionId()
   }
 }
-
