@@ -24,6 +24,7 @@ import com.tencent.angel.ml.matrix.psf.update.base.UpdateFunc;
 import com.tencent.angel.ml.matrix.psf.update.base.UpdateParam;
 import com.tencent.angel.ps.storage.vector.ServerIntIntRow;
 import com.tencent.angel.ps.storage.vector.ServerRow;
+import com.tencent.angel.ps.storage.vector.ServerRowUtils;
 import io.netty.buffer.ByteBuf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -69,7 +70,7 @@ public class UpdatePartFunc extends UpdateFunc {
   }
 
   public void updateDenseIntRow(ServerIntIntRow row, ByteBuf buf, int len) {
-    int[] values = row.getValues();
+    int[] values = ServerRowUtils.getVector(row).getStorage().getValues();
     for (int i = 0; i < len; i++) {
       int key = buf.readInt();
       int val = buf.readInt();

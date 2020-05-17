@@ -19,9 +19,11 @@
 package com.tencent.angel.ml.svm;
 
 import com.tencent.angel.conf.AngelConf;
-import com.tencent.angel.ml.core.conf.MLConf;
+import com.tencent.angel.ml.core.PSOptimizerProvider;
+import com.tencent.angel.ml.core.conf.AngelMLConf;
 import com.tencent.angel.ml.core.graphsubmit.GraphRunner;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
+import com.tencent.angel.mlcore.conf.MLCoreConf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -52,7 +54,7 @@ public class SVMTest {
       // Feature number of train data
       int featureNum = 300;
       // Total iteration number
-      int epochNum = 50;
+      int epochNum = 5;
       // Validation sample Ratio
       double vRatio = 0.1;
       // Data format, libsvm or dummy
@@ -75,10 +77,12 @@ public class SVMTest {
       conf.set(AngelConf.ANGEL_INPUTFORMAT_CLASS, CombineTextInputFormat.class.getName());
       conf.setBoolean(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, true);
       conf.set(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, "true");
-      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 100);
+      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+      conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
 
       // Set data format
-      conf.set(MLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
+      conf.set(AngelMLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
 
       //set angel resource parameters #worker, #task, #PS
       conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
@@ -86,16 +90,19 @@ public class SVMTest {
       conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
 
       //set sgd LR algorithm parameters #feature #epoch
-      conf.set(MLConf.ML_MODEL_TYPE(), modelType);
-      conf.set(MLConf.ML_FEATURE_INDEX_RANGE(), String.valueOf(featureNum));
-      conf.set(MLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
-      conf.set(MLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
-      conf.set(MLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
-      conf.set(MLConf.ML_LEARN_DECAY(), String.valueOf(decay));
-      conf.set(MLConf.ML_REG_L2(), String.valueOf(reg));
-      conf.setLong(MLConf.ML_MODEL_SIZE(), featureNum);
-      conf.set(MLConf.ML_MODEL_CLASS_NAME(),
+      conf.set(AngelMLConf.ML_MODEL_TYPE(), modelType);
+      conf.set(AngelMLConf.ML_FEATURE_INDEX_RANGE(), String.valueOf(featureNum));
+      conf.set(AngelMLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
+      conf.set(AngelMLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
+      conf.set(AngelMLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
+      conf.set(AngelMLConf.ML_OPT_DECAY_ALPHA(), String.valueOf(decay));
+      conf.set(AngelMLConf.ML_REG_L2(), String.valueOf(reg));
+      conf.setLong(AngelMLConf.ML_MODEL_SIZE(), featureNum);
+      conf.set(AngelMLConf.ML_MODEL_CLASS_NAME(),
         "com.tencent.angel.ml.classification.SupportVectorMachine");
+
+      conf.set(MLCoreConf.ML_OPTIMIZER_JSON_PROVIDER(), PSOptimizerProvider.class.getName());
+
     } catch (Exception x) {
       LOG.error("setup failed ", x);
       throw x;
@@ -110,7 +117,7 @@ public class SVMTest {
   private void trainTest() throws Exception {
     try {
       String inputPath = "../../data/w6a/w6a_300d_train.dense";
-      String savePath = LOCAL_FS + TMP_PATH + "/SVM";
+      String savePath = LOCAL_FS + TMP_PATH + "/model/SVM";
       String logPath = LOCAL_FS + TMP_PATH + "/SVMlog";
 
       // Set trainning data path
@@ -120,7 +127,7 @@ public class SVMTest {
       // Set log path
       conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
       // Set actionType train
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
 
       GraphRunner runner = new GraphRunner();
       runner.train(conf);
@@ -133,10 +140,10 @@ public class SVMTest {
   private void predictTest() throws Exception {
     try {
       String inputPath = "../../data/w6a/w6a_300d_test.libsvm";
-      String loadPath = LOCAL_FS + TMP_PATH + "/SVM";
+      String loadPath = LOCAL_FS + TMP_PATH + "/model/SVM";
       String predictPath = LOCAL_FS + TMP_PATH + "/predict";
 
-      conf.set(MLConf.ML_DATA_INPUT_FORMAT(), "libsvm");
+      conf.set(AngelMLConf.ML_DATA_INPUT_FORMAT(), "libsvm");
 
       // Set trainning data path
       conf.set(AngelConf.ANGEL_PREDICT_DATA_PATH, inputPath);
@@ -147,7 +154,7 @@ public class SVMTest {
       // Set predict result path
       conf.set(AngelConf.ANGEL_PREDICT_PATH, predictPath);
 
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_PREDICT());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_PREDICT());
 
 
       GraphRunner runner = new GraphRunner();

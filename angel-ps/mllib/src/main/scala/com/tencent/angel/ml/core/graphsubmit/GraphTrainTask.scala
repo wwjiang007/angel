@@ -19,25 +19,19 @@
 package com.tencent.angel.ml.core.graphsubmit
 
 import com.tencent.angel.ml.core.TrainTask
-import com.tencent.angel.ml.core.conf.{MLConf, SharedConf}
-import com.tencent.angel.ml.feature.LabeledData
+import com.tencent.angel.ml.math2.utils.{DataBlock, LabeledData, RowType}
 import com.tencent.angel.ml.math2.vector.Vector
-import com.tencent.angel.ml.matrix.RowType
-import com.tencent.angel.ml.core.utils.{DataParser, NetUtils}
-import com.tencent.angel.worker.storage.{DataBlock, DiskDataBlock, MemoryAndDiskDataBlock, MemoryDataBlock}
+import com.tencent.angel.worker.storage.{DiskDataBlock, MemoryAndDiskDataBlock, MemoryDataBlock}
 import com.tencent.angel.worker.task.TaskContext
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import org.apache.commons.logging.{Log, LogFactory}
 import org.apache.hadoop.io.{LongWritable, Text}
 
 
 class GraphTrainTask(ctx: TaskContext) extends TrainTask[LongWritable, Text](ctx) {
   val LOG: Log = LogFactory.getLog(classOf[GraphTrainTask])
-  var idxsVector: Vector = _
 
-  private val valiRat = SharedConf.validateRatio
-  private val posnegRatio: Double = SharedConf.posnegRatio()
+  private val valiRat = sharedConf.validateRatio
+  private val posnegRatio: Double = sharedConf.posnegRatio()
 
   // validation data storage
   val validDataBlock: DataBlock[LabeledData] = getDataBlock("memory")
@@ -45,12 +39,11 @@ class GraphTrainTask(ctx: TaskContext) extends TrainTask[LongWritable, Text](ctx
   val negDataBlock: DataBlock[LabeledData] = getDataBlock()
 
   // data format of training data, libsvm or dummy
-  override val dataParser = DataParser(SharedConf.get())
-  val modelType: RowType = SharedConf.modelType
-  val modelClassName: String = SharedConf.modelClassName
+  val modelType: RowType = sharedConf.modelType
+  val modelClassName: String = sharedConf.modelClassName
 
-  override def train(ctx: TaskContext) {
-    val trainer = new GraphLearner(modelClassName, ctx, idxsVector)
+  override def train(ctx: TaskContext): Unit = {
+    val trainer = new GraphLearner(sharedConf, ctx)
     if (posnegRatio == -1) {
       trainer.train(taskDataBlock, validDataBlock)
     } else {
@@ -69,79 +62,28 @@ class GraphTrainTask(ctx: TaskContext) extends TrainTask[LongWritable, Text](ctx
     val vali = Math.ceil(1.0 / valiRat).toInt
 
     val reader = taskContext.getReader
-
-    idxsVector = if (needIndexs) {
-      val expected = Math.max(256, Math.min((SharedConf.indexRange / 10000).toInt, 10000000))
-
-      SharedConf.keyType() match {
-        case "int" =>
-          val idxs = new IntOpenHashSet(expected)
-          while (reader.nextKeyValue) {
-            val out = parse(reader.getCurrentKey, reader.getCurrentValue)
-            if (out != null) {
-              addIndexs(out.getX, idxs)
-
-              if (count % vali == 0)
-                validDataBlock.put(out)
-              else if (posnegRatio != -1) {
-                if (out.getY > 0) {
-                  posDataBlock.put(out)
-                } else {
-                  negDataBlock.put(out)
-                }
-              } else {
-                taskDataBlock.put(out)
-              }
-              count += 1
-            }
-          }
-          set2Vector(idxs)
-        case "long" =>
-          val idxs = new LongOpenHashSet(expected)
-          while (reader.nextKeyValue) {
-            val out = parse(reader.getCurrentKey, reader.getCurrentValue)
-            if (out != null) {
-              addIndexs(out.getX, idxs)
-
-              if (count % vali == 0) {
-                validDataBlock.put(out)
-              } else if (posnegRatio != -1) {
-                if (out.getY > 0) {
-                  posDataBlock.put(out)
-                } else {
-                  negDataBlock.put(out)
-                }
-              } else {
-                taskDataBlock.put(out)
-              }
-              count += 1
-            }
-          }
-          set2Vector(idxs)
-      }
-    } else {
-      while (reader.nextKeyValue) {
-        val out = parse(reader.getCurrentKey, reader.getCurrentValue)
-        if (out != null) {
-          if (count % vali == 0)
-            validDataBlock.put(out)
-          else if (posnegRatio != -1) {
-            if (out.getY > 0) {
-              posDataBlock.put(out)
-            } else {
-              negDataBlock.put(out)
-            }
+    while (reader.nextKeyValue) {
+      val out = parse(reader.getCurrentKey, reader.getCurrentValue)
+      if (out != null) {
+        if (count % vali == 0)
+          validDataBlock.put(out)
+        else if (posnegRatio != -1) {
+          if (out.getY > 0) {
+            posDataBlock.put(out)
           } else {
-            taskDataBlock.put(out)
+            negDataBlock.put(out)
           }
-          count += 1
+        } else {
+          taskDataBlock.put(out)
         }
+        count += 1
       }
 
       null.asInstanceOf[Vector]
     }
 
-    taskDataBlock.flush()
+    posDataBlock.flush()
+    negDataBlock.flush()
     validDataBlock.flush()
 
     val cost = System.currentTimeMillis() - start
@@ -157,7 +99,7 @@ class GraphTrainTask(ctx: TaskContext) extends TrainTask[LongWritable, Text](ctx
     val storageLevel = if (level != null && level.length != 0) {
       level
     } else {
-      SharedConf.storageLevel
+      sharedConf.storageLevel
     }
 
     if (storageLevel.equalsIgnoreCase("memory")) {

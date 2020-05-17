@@ -20,7 +20,7 @@ package com.tencent.angel.ml.lda.algo;
 
 
 import com.tencent.angel.ml.lda.algo.structures.I2ITranverseMap;
-import com.tencent.angel.worker.storage.DataBlock;
+import com.tencent.angel.ml.math2.utils.DataBlock;
 
 import java.io.IOException;
 
@@ -59,7 +59,7 @@ public class CSRTokens {
     ds = new int[n_docs + 1];
     n_tokens = 0;
 
-    maxDocLen = -1;
+    maxDocLen = 1;
 
     // count word
     ds[0] = 0;

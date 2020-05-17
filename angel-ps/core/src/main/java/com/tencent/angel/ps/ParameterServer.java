@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
  *
  * https://opensource.org/licenses/Apache-2.0
@@ -24,24 +24,29 @@ import com.tencent.angel.RunningMode;
 import com.tencent.angel.common.AngelEnvironment;
 import com.tencent.angel.common.location.Location;
 import com.tencent.angel.conf.AngelConf;
-import com.tencent.angel.conf.MatrixConf;
+import com.tencent.angel.master.matrix.committer.SaveResult;
 import com.tencent.angel.ml.matrix.MatrixMeta;
 import com.tencent.angel.ml.matrix.PartitionMeta;
 import com.tencent.angel.model.PSMatricesLoadContext;
 import com.tencent.angel.model.PSMatrixLoadContext;
+import com.tencent.angel.model.output.format.SnapshotFormat;
 import com.tencent.angel.plugin.AngelServiceLoader;
 import com.tencent.angel.protobuf.ProtobufUtil;
 import com.tencent.angel.protobuf.generated.MLProtos;
 import com.tencent.angel.protobuf.generated.MLProtos.PSAttemptIdProto;
 import com.tencent.angel.protobuf.generated.MLProtos.Pair;
-import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.*;
+import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.MatrixReportProto;
+import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.PSReportRequest;
+import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.PSReportResponse;
+import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.PartReportProto;
+import com.tencent.angel.protobuf.generated.PSMasterServiceProtos.RecoverPartKeyProto;
 import com.tencent.angel.ps.client.MasterClient;
 import com.tencent.angel.ps.client.PSLocationManager;
 import com.tencent.angel.ps.clock.ClockVectorManager;
-import com.tencent.angel.ps.io.IOExecutors;
-import com.tencent.angel.ps.io.load.MatrixLoader;
+import com.tencent.angel.ps.io.PSModelIOExecutor;
+import com.tencent.angel.ps.io.load.PSModelLoader;
 import com.tencent.angel.ps.io.load.SnapshotRecover;
-import com.tencent.angel.ps.io.save.MatrixSaver;
+import com.tencent.angel.ps.io.save.PSModelSaver;
 import com.tencent.angel.ps.io.save.SnapshotDumper;
 import com.tencent.angel.ps.meta.PSMatrixMetaManager;
 import com.tencent.angel.ps.server.control.ParameterServerService;
@@ -50,6 +55,14 @@ import com.tencent.angel.ps.server.data.PSFailedReport;
 import com.tencent.angel.ps.server.data.RunningContext;
 import com.tencent.angel.ps.server.data.WorkerPool;
 import com.tencent.angel.ps.storage.MatrixStorageManager;
+import com.tencent.angel.ps.storage.vector.ServerRow;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -59,18 +72,12 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
- * Parameter server,hold and manage individual parameters that divided by {@link com.tencent.angel.master.AngelApplicationMaster}.
+ * Parameter server,hold and manage individual parameters that divided by {@link
+ * com.tencent.angel.master.AngelApplicationMaster}.
  */
 public class ParameterServer {
+
   private static final Log LOG = LogFactory.getLog(ParameterServer.class);
 
   /**
@@ -140,15 +147,17 @@ public class ParameterServer {
    */
   private volatile ClockVectorManager clockVectorManager;
 
-  /**
-   * Matrix saver
-   */
-  private volatile MatrixSaver matrixSaver;
+  private volatile PSModelIOExecutor ioExecutor;
 
   /**
    * Matrix saver
    */
-  private volatile MatrixLoader matrixLoader;
+  private volatile PSModelSaver saver;
+
+  /**
+   * Matrix saver
+   */
+  private volatile PSModelLoader loader;
 
   /**
    * Matrix snapshot dumper
@@ -173,11 +182,6 @@ public class ParameterServer {
   private volatile RunningContext runningContext;
 
   private final PSFailedReport psFailedReport;
-
-  /**
-   * Matrix Load/Dump workers
-   */
-  private volatile IOExecutors ioExecutors;
 
   private static final AtomicInteger runningWorkerGroupNum = new AtomicInteger(0);
   private static final AtomicInteger runningWorkerNum = new AtomicInteger(0);
@@ -210,14 +214,14 @@ public class ParameterServer {
   /**
    * Create a new Parameter server.
    *
-   * @param serverIndex   the server index
-   * @param attemptIndex  the attempt index
+   * @param serverIndex the server index
+   * @param attemptIndex the attempt index
    * @param appMasterHost the app master host
    * @param appMasterPort the app master port
-   * @param conf          the conf
+   * @param conf the conf
    */
   public ParameterServer(int serverIndex, int attemptIndex, String appMasterHost, int appMasterPort,
-    Configuration conf) {
+      Configuration conf) {
     this.attemptId = new PSAttemptId(new ParameterServerId(serverIndex), attemptIndex);
     this.attemptIdProto = ProtobufUtil.convertToIdProto(attemptId);
     this.attemptIndex = attemptIndex;
@@ -239,8 +243,6 @@ public class ParameterServer {
 
   /**
    * Get matrix meta manager
-   *
-   * @return
    */
   public PSMatrixMetaManager getMatrixMetaManager() {
     return matrixMetaManager;
@@ -248,8 +250,6 @@ public class ParameterServer {
 
   /**
    * Get matrix clock vector manager
-   *
-   * @return
    */
   public ClockVectorManager getClockVectorManager() {
     return clockVectorManager;
@@ -315,9 +315,9 @@ public class ParameterServer {
         clockVectorManager = null;
       }
 
-      if (ioExecutors != null) {
-        ioExecutors.stop();
-        ioExecutors = null;
+      if (ioExecutor != null) {
+        ioExecutor.stop();
+        ioExecutor = null;
       }
 
       if (runningContext != null) {
@@ -332,7 +332,7 @@ public class ParameterServer {
 
   private void exit(int code) {
     AngelDeployMode deployMode = context.getDeployMode();
-    if (deployMode == AngelDeployMode.YARN) {
+    if (deployMode == AngelDeployMode.YARN || deployMode == AngelDeployMode.KUBERNETES) {
       System.exit(code);
     }
   }
@@ -348,28 +348,32 @@ public class ParameterServer {
     Configuration conf = new Configuration();
     conf.addResource(AngelConf.ANGEL_JOB_CONF_FILE);
 
+    conf.setInt("io.file.buffer.size", conf.getInt(AngelConf.ANGEL_PS_IO_FILE_BUFFER_SIZE,
+        AngelConf.DEFAULT_ANGEL_PS_IO_FILE_BUFFER_SIZE));
+
     String user = System.getenv(ApplicationConstants.Environment.USER.name());
     UserGroupInformation.setConfiguration(conf);
 
     String runningMode =
-      conf.get(AngelConf.ANGEL_RUNNING_MODE, AngelConf.DEFAULT_ANGEL_RUNNING_MODE);
+        conf.get(AngelConf.ANGEL_RUNNING_MODE, AngelConf.DEFAULT_ANGEL_RUNNING_MODE);
     if (runningMode.equals(RunningMode.ANGEL_PS_WORKER.toString())) {
       LOG.debug("AngelEnvironment.TASK_NUMBER.name()=" + AngelEnvironment.TASK_NUMBER.name());
       conf.set(AngelConf.ANGEL_TASK_ACTUAL_NUM, System.getenv(AngelEnvironment.TASK_NUMBER.name()));
     }
 
     final ParameterServer psServer =
-      new ParameterServer(serverIndex, attemptIndex, appMasterHost, appMasterPort, conf);
+        new ParameterServer(serverIndex, attemptIndex, appMasterHost, appMasterPort, conf);
 
     try {
       Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
       UserGroupInformation psUGI = UserGroupInformation
-        .createRemoteUser(System.getenv(ApplicationConstants.Environment.USER.toString()));
+          .createRemoteUser(System.getenv(ApplicationConstants.Environment.USER.toString()));
       // Add tokens to new user so that it may execute its task correctly.
       psUGI.addCredentials(credentials);
 
       psUGI.doAs(new PrivilegedExceptionAction<Object>() {
-        @Override public Object run() throws Exception {
+        @Override
+        public Object run() throws Exception {
           psServer.initialize();
           psServer.start();
           return null;
@@ -386,7 +390,6 @@ public class ParameterServer {
    * Gets host address.
    *
    * @return the host address
-   * @throws UnknownHostException
    */
   public String getHostAddress() throws UnknownHostException {
     return psServerService.getHostAddress();
@@ -439,13 +442,21 @@ public class ParameterServer {
 
   /**
    * Initialize.
-   *
-   * @throws IOException
-   * @throws InstantiationException
-   * @throws IllegalAccessException
    */
   public void initialize() throws IOException, InstantiationException, IllegalAccessException {
     LOG.info("Initialize a parameter server");
+    ServerRow.maxLockWaitTimeMs = conf.getInt(AngelConf.ANGEL_PS_MAX_LOCK_WAITTIME_MS,
+        AngelConf.DEFAULT_ANGEL_PS_MAX_LOCK_WAITTIME_MS);
+
+    ServerRow.useAdaptiveKey = conf.getBoolean(AngelConf.ANGEL_PS_USE_ADAPTIVE_KEY_ENABLE,
+        AngelConf.DEFAULT_ANGEL_PS_USE_ADAPTIVE_KEY_ENABLE);
+
+    ServerRow.useAdaptiveStorage = conf.getBoolean(AngelConf.ANGEL_PS_USE_ADAPTIVE_STORAGE_ENABLE,
+        AngelConf.DEFAULT_ANGEL_PS_USE_ADAPTIVE_STORAGE_ENABLE);
+
+    ServerRow.sparseToDenseFactor = conf.getFloat(AngelConf.ANGEL_PS_SPARSE_TO_DENSE_FACTOR,
+        AngelConf.DEFAULT_ANGEL_PS_SPARSE_TO_DENSE_FACTOR);
+
     locationManager = new PSLocationManager(context);
     locationManager.setMasterLocation(masterLocation);
 
@@ -453,8 +464,8 @@ public class ParameterServer {
     workerPool = new WorkerPool(context, runningContext);
     workerPool.init();
 
-    ioExecutors = new IOExecutors(context);
-    ioExecutors.init();
+    ioExecutor = new PSModelIOExecutor(context);
+    ioExecutor.init();
 
     matrixStorageManager = new MatrixStorageManager(context);
     int taskNum = conf.getInt(AngelConf.ANGEL_TASK_ACTUAL_NUM, 1);
@@ -469,11 +480,11 @@ public class ParameterServer {
     psServerService.start();
     matrixTransportServer = new MatrixTransportServer(getPort() + 1, context);
 
-    matrixSaver = new MatrixSaver(context);
-    matrixLoader = new MatrixLoader(context);
+    saver = new PSModelSaver(context);
+    loader = new PSModelLoader(context);
 
     int replicNum = conf.getInt(AngelConf.ANGEL_PS_HA_REPLICATION_NUMBER,
-      AngelConf.DEFAULT_ANGEL_PS_HA_REPLICATION_NUMBER);
+        AngelConf.DEFAULT_ANGEL_PS_HA_REPLICATION_NUMBER);
 
     // TODO
     if (replicNum > 1) {
@@ -498,7 +509,7 @@ public class ParameterServer {
 
   private void startHeartbeat() {
     final int heartbeatInterval = conf.getInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS,
-      AngelConf.DEFAULT_ANGEL_PS_HEARTBEAT_INTERVAL_MS);
+        AngelConf.DEFAULT_ANGEL_PS_HEARTBEAT_INTERVAL_MS);
     LOG.info("Starting HeartbeatThread, interval is " + heartbeatInterval + " ms");
     heartbeatThread = new Thread(() -> {
       while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
@@ -548,8 +559,8 @@ public class ParameterServer {
       if (context.getPartReplication() > 1) {
         for (PartitionMeta part : matrix.getPartitionMetas().values()) {
           partBuilder.setPartId(part.getPartId()).setStatus(
-            context.getMatrixStorageManager().getPart(matrix.getId(), part.getPartId()).getState()
-              .getNumber());
+              context.getMatrixStorageManager().getPart(matrix.getId(), part.getPartId()).getState()
+                  .getNumber());
           matrixBuilder.addPartReports(partBuilder.build());
         }
       }
@@ -594,14 +605,14 @@ public class ParameterServer {
 
       LOG.debug("ps hb ret = " + ret);
       if (ret.hasNeedSaveMatrices()) {
-        matrixSaver.save(ProtobufUtil.convert(ret.getNeedSaveMatrices()));
+        saver.save(ProtobufUtil.convert(ret.getNeedSaveMatrices()));
       }
 
       if (ret.hasNeedLoadMatrices()) {
-        matrixLoader.load(ProtobufUtil.convert(ret.getNeedLoadMatrices()));
+        loader.load(ProtobufUtil.convert(ret.getNeedLoadMatrices()));
       }
       syncMatrices(ret.getNeedCreateMatricesList(), ret.getNeedReleaseMatrixIdsList(),
-        ret.getNeedRecoverPartsList());
+          ret.getNeedRecoverPartsList());
     } catch (Throwable e) {
       LOG.error("send heartbeat to appmaster failed ", e);
       stop(-1);
@@ -609,8 +620,8 @@ public class ParameterServer {
   }
 
   private void syncMatrices(List<MLProtos.MatrixMetaProto> needCreateMatrices,
-    List<Integer> needReleaseMatrices, List<RecoverPartKeyProto> needRecoverParts)
-    throws Exception {
+      List<Integer> needReleaseMatrices, List<RecoverPartKeyProto> needRecoverParts)
+      throws Exception {
     if (!needCreateMatrices.isEmpty()) {
       createMatrices(ProtobufUtil.convertToMatricesMeta(needCreateMatrices));
     }
@@ -649,38 +660,85 @@ public class ParameterServer {
       return;
     }
 
-    int matrixNum = matrixMetas.size();
-    List<PSMatrixLoadContext> matrixLoadContexts = new ArrayList<>(matrixMetas.size());
-    SnapshotRecover recover = new SnapshotRecover(context);
-    for (int i = 0; i < matrixNum; i++) {
-      // First check snapshot
-      Path inputPath = null;
-      try {
-        inputPath = recover.getSnapshotPath(matrixMetas.get(i).getId());
-      } catch (IOException e) {
-        LOG.error("Get snapshot path failed, ", e);
-      }
+    // Recover PS from snapshot or load path
+    if (context.getPSAttemptId().getIndex() > 0) {
+      int matrixNum = matrixMetas.size();
+      List<PSMatrixLoadContext> matrixLoadContexts = new ArrayList<>(matrixMetas.size());
+      SnapshotRecover recover = new SnapshotRecover(context);
+      for (int i = 0; i < matrixNum; i++) {
+        // 1. First check old snapshot
+        Path inputPath = null;
+        try {
+          inputPath = recover.getSnapshotPath(matrixMetas.get(i).getId());
+        } catch (IOException e) {
+          LOG.error("Get snapshot path failed, ", e);
+        }
 
-      // Check load path setting
-      if (inputPath == null) {
-        String loadPathStr = matrixMetas.get(i).getAttribute(MatrixConf.MATRIX_LOAD_PATH);
-        if (loadPathStr != null) {
-          inputPath = new Path(loadPathStr);
+        // 2. Check new checkpoints
+        if (inputPath == null) {
+          try {
+            List<SaveResult> saveResults = master.getCheckpoints(matrixMetas.get(i).getId());
+            if (saveResults == null || saveResults.isEmpty()) {
+              LOG.info("There is no checkpoint results for matrix " + matrixMetas.get(i).getName());
+            } else {
+              inputPath = new Path(saveResults.get(saveResults.size() - 1).getMatrixPath());
+              LOG.info(
+                  "There is " + saveResults.size() + " checkpoint results for matrix + "
+                      + matrixMetas
+                      .get(i).getName()
+                      + " we choose the latest result in dir " + saveResults
+                      .get(saveResults.size() - 1).getMatrixPath());
+            }
+          } catch (ServiceException e) {
+            LOG.error(
+                "Get checkpoint results for matrix " + matrixMetas.get(i).getName() + " failed ",
+                e);
+          }
+        }
+
+        // 3. Check load path setting and old save result
+        if (inputPath == null) {
+          try {
+            List<SaveResult> saveResults = master.getSaveResult(matrixMetas.get(i).getId());
+            if (saveResults == null || saveResults.isEmpty()) {
+              LOG.info("There is no old save result for matrix " + matrixMetas.get(i).getName());
+            } else {
+              inputPath = new Path(saveResults.get(saveResults.size() - 1).getMatrixPath());
+              LOG.info(
+                  "There is " + saveResults.size() + " old save results for matrix + " + matrixMetas
+                      .get(i).getName()
+                      + " we choose the latest result in dir " + saveResults
+                      .get(saveResults.size() - 1).getMatrixPath());
+            }
+          } catch (ServiceException e) {
+            LOG.error("Get save results for matrix " + matrixMetas.get(i).getName() + " failed ",
+                e);
+          }
+        }
+
+        if (inputPath != null) {
+          LOG.info("Load matrix " + matrixMetas.get(i).getName() + " from " + inputPath.toString());
+          matrixLoadContexts.add(new PSMatrixLoadContext(matrixMetas.get(i).getId(),
+              inputPath.toString(),
+              new ArrayList<>(matrixMetas.get(i).getPartitionMetas().keySet()),
+              SnapshotFormat.class.getName()));
+        } else {
+          // Just init it again
+          if (matrixMetas.get(i).getInitFunc() != null) {
+            LOG.info("Matrix " + matrixMetas.get(i) + " has a init function " + matrixMetas.get(i)
+                .getInitFunc().getClass().getName() + ", use this function to reinit the matrix");
+            long startTs = System.currentTimeMillis();
+            matrixMetas.get(i).getInitFunc()
+                .init(context.getMatrixStorageManager().getMatrix(matrixMetas.get(i).getId()));
+            LOG.info("Reinit the matrix use time " + (System.currentTimeMillis() - startTs));
+          }
         }
       }
 
-      if (inputPath == null) {
-        matrixLoadContexts.add(new PSMatrixLoadContext(matrixMetas.get(i).getId(), null,
-          new ArrayList<Integer>(matrixMetas.get(i).getPartitionMetas().keySet())));
-      } else {
-        matrixLoadContexts.add(
-          new PSMatrixLoadContext(matrixMetas.get(i).getId(), inputPath.toString(),
-            new ArrayList<Integer>(matrixMetas.get(i).getPartitionMetas().keySet())));
+      if (!matrixLoadContexts.isEmpty()) {
+        context.getIOExecutors().load(new PSMatricesLoadContext(-1, -1, matrixLoadContexts));
       }
     }
-
-    context.getMatrixStorageManager()
-      .load(new PSMatricesLoadContext(-1, -1, null, matrixLoadContexts));
   }
 
   private void releaseMatrices(List<Integer> matrixIds) {
@@ -712,14 +770,14 @@ public class ParameterServer {
     // }
 
     workerPool.start();
-    ioExecutors.start();
+    ioExecutor.start();
     matrixTransportServer.start();
     clockVectorManager.start();
     runningContext.start();
 
     if (getAttemptIndex() > 0) {
       LOG.info("PS " + getServerId() + " running attempt " + getAttemptIndex()
-        + " load matrices from snapshot if need");
+          + " load matrices from snapshot if need");
       List<MatrixMeta> matrixMetas = master.getMatricesMeta();
       if (!matrixMetas.isEmpty()) {
         createMatrices(matrixMetas);
@@ -820,8 +878,8 @@ public class ParameterServer {
    *
    * @return File Read/Writer executors
    */
-  public IOExecutors getIOExecutors() {
-    return ioExecutors;
+  public PSModelIOExecutor getPSModelIOExecutor() {
+    return ioExecutor;
   }
 
   /**

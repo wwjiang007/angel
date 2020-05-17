@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
  *
  * https://opensource.org/licenses/Apache-2.0
@@ -18,51 +18,42 @@
 
 package com.tencent.angel.ps.storage.vector;
 
-import com.tencent.angel.ml.math2.vector.LongIntVector;
+import com.tencent.angel.ml.math2.vector.IntLongVector;
 import com.tencent.angel.ml.math2.vector.LongLongVector;
-import com.tencent.angel.ml.math2.vector.Vector;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.ps.server.data.request.IndexType;
-import com.tencent.angel.ps.server.data.request.UpdateOp;
+import com.tencent.angel.ps.server.data.request.InitFunc;
+import com.tencent.angel.ps.storage.vector.func.LongElemUpdateFunc;
+import com.tencent.angel.ps.storage.vector.op.ILongLongOp;
+import com.tencent.angel.ps.storage.vector.storage.LongLongStorage;
 import io.netty.buffer.ByteBuf;
-import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 /**
  * The row with "long" index type and "long" value type in PS
  */
-public class ServerLongLongRow extends ServerRow {
-  /**
-   * Just a view of "row" in ServerRow
-   */
-  private LongLongVector longLongRow;
+public class ServerLongLongRow extends ServerBasicTypeRow implements ILongLongOp {
 
   /**
-   * Create a new ServerLongLongRow
+   * Create a new ServerIntDoubleRow
    *
-   * @param rowId      row index
-   * @param rowType    row type
-   * @param startCol   start position
-   * @param endCol     end position
+   * @param rowId row index
+   * @param rowType row type
+   * @param startCol start position
+   * @param endCol end position
    * @param estElemNum the estimate element number
    */
   public ServerLongLongRow(int rowId, RowType rowType, long startCol, long endCol, int estElemNum,
-    LongLongVector innerRow) {
-    super(rowId, rowType, startCol, endCol, estElemNum, innerRow);
-    this.longLongRow = (LongLongVector) row;
+      LongLongStorage storage) {
+    super(rowId, rowType, startCol, endCol, estElemNum, storage);
   }
 
   /**
-   * Create a new ServerLongLongRow
+   * Create a new ServerIntDoubleRow
    *
-   * @param rowId      row index
-   * @param rowType    row type
-   * @param startCol   start position
-   * @param endCol     end position
+   * @param rowId row index
+   * @param rowType row type
+   * @param startCol start position
+   * @param endCol end position
    * @param estElemNum the estimate element number
    */
   public ServerLongLongRow(int rowId, RowType rowType, long startCol, long endCol, int estElemNum) {
@@ -70,7 +61,7 @@ public class ServerLongLongRow extends ServerRow {
   }
 
   /**
-   * Create a new ServerLongIntRow
+   * Create a new ServerLongLongRow
    *
    * @param rowType row type
    */
@@ -83,225 +74,103 @@ public class ServerLongLongRow extends ServerRow {
   // and call endWrite/endRead after
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
-  /**
-   * Get a element value with out lock operation
-   *
-   * @param index element index
-   * @return element value
-   */
+  @Override
+  public LongLongStorage getStorage() {
+    return (LongLongStorage) storage;
+  }
+
+  @Override
   public long get(long index) {
-    return longLongRow.get(index - startCol);
+    return getStorage().get(index);
   }
 
-  /**
-   * Set a element value without lock operation
-   *
-   * @param index element index
-   * @param value element new value
-   */
+  @Override
   public void set(long index, long value) {
-    longLongRow.set(index - startCol, value);
+    getStorage().set(index, value);
   }
 
-  /**
-   * Get a batch elements values without lock
-   *
-   * @param indices elements indices
-   * @return elements values
-   */
+  @Override
   public long[] get(long[] indices) {
-    long[] values = new long[indices.length];
-    for (int i = 0; i < indices.length; i++) {
-      values[i] = longLongRow.get(indices[i] - startCol);
-    }
-    return values;
+    return getStorage().get(indices);
   }
 
-  /**
-   * Set a batch elements values without lock
-   *
-   * @param indices elements indices
-   * @param values  elements values
-   */
+  @Override
   public void set(long[] indices, long[] values) {
     assert indices.length == values.length;
-    for (int i = 0; i < indices.length; i++) {
-      longLongRow.set(indices[i] - startCol, values[i]);
-    }
+    getStorage().set(indices, values);
   }
 
-  /**
-   * Add a element value without lock
-   *
-   * @param index element index
-   * @param value element plus value
-   */
+  @Override
   public void addTo(long index, long value) {
-    set(index, get(index) + value);
+    getStorage().addTo(index, value);
   }
 
-  /**
-   * Add a batch elements values without lock
-   *
-   * @param indices elements indices
-   * @param values  elements plus values
-   */
+  @Override
   public void addTo(long[] indices, long[] values) {
     assert indices.length == values.length;
-    for (int i = 0; i < indices.length; i++) {
-      set(indices[i], get(indices[i]) + values[i]);
-    }
+    getStorage().addTo(indices, values);
   }
 
-  /**
-   * Get all element values without lock, you must check the storage is dense first use "isDense"
-   *
-   * @return all element values
-   */
-  public long[] getValues() {
-    return longLongRow.getStorage().getValues();
+  @Override
+  public int size() {
+    return getStorage().size();
   }
 
-  /**
-   * Get all element indices and values without lock, you must check the storage is sparse first use "isSparse";
-   * if you want use original indices, you must plus with "startCol" first
-   *
-   * @return all element values
-   */
-  public ObjectIterator<Long2LongMap.Entry> getIter() {
-    return longLongRow.getStorage().entryIterator();
-  }
-
-
-  @Override public void update(RowType updateType, ByteBuf buf, UpdateOp op) {
-    startWrite();
-
-    try {
-      switch (updateType) {
-        case T_LONG_SPARSE_LONGKEY:
-        case T_LONG_SPARSE_LONGKEY_COMPONENT:
-          updateUseSparse(buf, op);
-          break;
-
-        default: {
-          throw new UnsupportedOperationException(
-            "Unsupport operation: update " + updateType + " to " + this.getClass().getName());
-        }
-      }
-
-      updateRowVersion();
-    } finally {
-      endWrite();
-    }
-  }
-
-  private void updateUseSparse(ByteBuf buf, UpdateOp op) {
-    int size = buf.readInt();
-    if (op == UpdateOp.PLUS) {
-      for (int i = 0; i < size; i++) {
-        long index = buf.readLong();
-        longLongRow.set(index, longLongRow.get(index) + buf.readLong());
-      }
-    } else {
-      for (int i = 0; i < size; i++) {
-        longLongRow.set(buf.readLong(), buf.readLong());
-      }
-    }
-  }
-
-  @Override public int size() {
-    return (int) longLongRow.size();
-  }
-
+  @Override
   public void mergeTo(LongLongVector mergedRow) {
     startRead();
     try {
-      if (isSparse()) {
-        ObjectIterator<Long2LongMap.Entry> iter = getIter();
-        Long2LongMap.Entry entry;
-        while (iter.hasNext()) {
-          entry = iter.next();
-          mergedRow.set(entry.getLongKey() + startCol, entry.getLongValue());
-        }
-      }
+      getStorage().mergeTo(mergedRow);
     } finally {
       endRead();
     }
   }
 
-  @Override protected void serializeRow(ByteBuf buf) {
-    if (isSparse()) {
-      ObjectIterator<Long2LongMap.Entry> iter = getIter();
-      Long2LongMap.Entry entry;
-      while (iter.hasNext()) {
-        entry = iter.next();
-        buf.writeLong(entry.getLongKey());
-        buf.writeLong(entry.getLongValue());
-      }
-    }
-  }
-
-  @Override protected void deserializeRow(ByteBuf buf) {
-    longLongRow = (LongLongVector) row;
-    if (isSparse()) {
-      for (int i = 0; i < size; i++) {
-        longLongRow.set(buf.readLong(), buf.readLong());
-      }
-    }
-  }
-
-  @Override protected int getRowSpace() {
-    return size() * 16;
-  }
-
-  @Override public ServerRow clone() {
+  @Override
+  public ServerRow deepClone() {
     startRead();
     try {
       return new ServerLongLongRow(rowId, rowType, startCol, endCol, (int) estElemNum,
-        longLongRow.clone());
+          (LongLongStorage) storage.deepClone());
     } finally {
       endRead();
     }
   }
 
-  @Override protected void writeRow(DataOutputStream output) throws IOException {
-    if (isSparse()) {
-      output.writeInt(size());
-      ObjectIterator<Long2LongMap.Entry> iter = getIter();
-      Long2LongMap.Entry entry;
-      while (iter.hasNext()) {
-        entry = iter.next();
-        output.writeLong(entry.getLongKey());
-        output.writeLong(entry.getLongValue());
-      }
+  @Override
+  public ServerRow
+  adaptiveClone() {
+    startRead();
+    try {
+      return new ServerLongLongRow(rowId, rowType, startCol, endCol, (int) estElemNum,
+          (LongLongStorage) storage.adaptiveClone());
+    } finally {
+      endRead();
     }
   }
 
-  @Override protected void readRow(DataInputStream input) throws IOException {
-    longLongRow = (LongLongVector) row;
-    if (isSparse()) {
-      int size = input.readInt();
-      for (int i = 0; i < size; i++) {
-        longLongRow.set(input.readLong(), input.readLong());
-      }
-    }
+  /**
+   * Check the vector contains the index or not
+   *
+   * @param index element index
+   * @return true means exist
+   */
+  public boolean exist(long index) {
+    return getStorage().exist(index);
   }
 
-  @Override public void indexGet(IndexType indexType, int indexSize, ByteBuf in, ByteBuf out)
-    throws IOException {
-    if (indexType == IndexType.INT) {
-      for (int i = 0; i < indexSize; i++) {
-        out.writeLong(get(in.readInt()));
-      }
-    } else {
-      for (int i = 0; i < indexSize; i++) {
-        out.writeLong(get(in.readLong()));
-      }
-    }
+  @Override
+  public long initAndGet(long index, InitFunc func) {
+    return getStorage().initAndGet(index, func);
   }
 
-  @Override public void setSplit(Vector row) {
-    super.setSplit(row);
-    longLongRow = (LongLongVector) row;
+  @Override
+  public void indexGet(IndexType indexType, int indexSize, ByteBuf in, ByteBuf out, InitFunc func) {
+    getStorage().indexGet(indexType, indexSize, in, out, func);
+  }
+
+  @Override
+  public void elemUpdate(LongElemUpdateFunc func) {
+    getStorage().elemUpdate(func);
   }
 }

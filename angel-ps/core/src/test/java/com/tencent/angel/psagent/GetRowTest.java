@@ -29,7 +29,7 @@ import com.tencent.angel.ml.math2.storage.*;
 import com.tencent.angel.ml.math2.vector.*;
 import com.tencent.angel.ml.matrix.MatrixContext;
 import com.tencent.angel.ml.matrix.MatrixMeta;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.ps.PSAttemptId;
 import com.tencent.angel.ps.ParameterServerId;
 import com.tencent.angel.psagent.matrix.MatrixClient;
@@ -125,7 +125,12 @@ public class GetRowTest {
     conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
     conf.setInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, 1);
     conf.setInt(AngelConf.ANGEL_MODEL_PARTITIONER_PARTITION_SIZE, 1000);
-    conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 100);
+
+    conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+    conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+    conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
+    conf.setInt(AngelConf.ANGEL_WORKER_MAX_ATTEMPTS, 1);
+    conf.setInt(AngelConf.ANGEL_PS_MAX_ATTEMPTS, 1);
 
     // get a angel client
     angelClient = AngelClientFactory.get(conf);
@@ -398,11 +403,11 @@ public class GetRowTest {
   }
 
   @Test public void test() throws Exception {
-    testDenseDoubleUDF();
-    testSparseDoubleUDF();
+    //testDenseDoubleUDF();
+    //testSparseDoubleUDF();
 
     testDenseDoubleCompUDF();
-    testSparseDoubleCompUDF();
+    /*testSparseDoubleCompUDF();
 
     testDenseFloatUDF();
     testSparseFloatUDF();
@@ -432,7 +437,7 @@ public class GetRowTest {
     testSparseIntLongKeyCompUDF();
 
     testSparseLongLongKeyUDF();
-    testSparseLongLongKeyCompUDF();
+    testSparseLongLongKeyCompUDF();*/
   }
 
 

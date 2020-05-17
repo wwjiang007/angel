@@ -18,35 +18,31 @@
 
 package com.tencent.angel.ml.classification
 
-import com.tencent.angel.ml.core.conf.{MLConf, SharedConf}
-import com.tencent.angel.ml.core.graphsubmit.GraphModel
-import com.tencent.angel.ml.core.network.layers.edge.inputlayer.{DenseInputLayer, SparseInputLayer}
-import com.tencent.angel.ml.core.network.layers.edge.losslayer.SoftmaxLossLayer
-import com.tencent.angel.ml.core.network.transfunc.Identity
-import com.tencent.angel.ml.core.optimizer.OptUtils
-import com.tencent.angel.ml.core.optimizer.loss.{LossFunc, SoftmaxLoss}
+import com.tencent.angel.ml.core.PSOptimizerProvider
+import com.tencent.angel.mlcore.conf.{MLCoreConf, SharedConf}
+import com.tencent.angel.ml.core.graphsubmit.AngelModel
+import com.tencent.angel.mlcore.network.Identity
+import com.tencent.angel.mlcore.network.layers.LossLayer
+import com.tencent.angel.mlcore.network.layers.leaf.SimpleInputLayer
+import com.tencent.angel.mlcore.optimizer.loss.SoftmaxLoss
 import com.tencent.angel.worker.task.TaskContext
-import org.apache.hadoop.conf.Configuration
 
 /**
   * LR model
   *
   */
 
-class SoftmaxRegression(conf: Configuration, _ctx: TaskContext = null)
-  extends GraphModel(conf, _ctx) {
-  val numClass: Int = SharedConf.numClass
 
-  override val lossFunc: LossFunc = new SoftmaxLoss()
+class SoftmaxRegression(conf: SharedConf, _ctx: TaskContext = null) extends AngelModel(conf, _ctx) {
+  val numClass: Int = conf.numClass
+  val optProvider = new PSOptimizerProvider(conf)
 
-  override def buildNetwork(): Unit = {
-    val input = dataFormat match {
-      case "dense" => new DenseInputLayer("input", numClass, new Identity(),
-        OptUtils.getOptimizer(sharedConf.get(MLConf.ML_DENSEINPUTLAYER_OPTIMIZER, MLConf.DEFAULT_ML_DENSEINPUTLAYER_OPTIMIZER)))
-      case _ => new SparseInputLayer("input", numClass, new Identity(),
-        OptUtils.getOptimizer(sharedConf.get(MLConf.ML_SPARSEINPUTLAYER_OPTIMIZER, MLConf.DEFAULT_ML_SPARSEINPUTLAYER_OPTIMIZER)))
-    }
-    new SoftmaxLossLayer("softmaxLossLayer", input, lossFunc)
+  override def buildNetwork(): this.type = {
+    val ipOptName: String = conf.get(MLCoreConf.ML_INPUTLAYER_OPTIMIZER, MLCoreConf.DEFAULT_ML_INPUTLAYER_OPTIMIZER)
+    val input = new SimpleInputLayer("input", numClass, new Identity(), optProvider.getOptimizer(ipOptName))
+    new LossLayer("softmaxLossLayer", input, new SoftmaxLoss())
+
+    this
   }
 
 }

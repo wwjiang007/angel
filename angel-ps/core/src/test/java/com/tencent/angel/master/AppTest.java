@@ -28,7 +28,7 @@ import com.tencent.angel.ipc.TConnectionManager;
 import com.tencent.angel.localcluster.LocalClusterContext;
 import com.tencent.angel.master.app.InternalErrorEvent;
 import com.tencent.angel.ml.matrix.MatrixContext;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.protobuf.ProtobufUtil;
 import com.tencent.angel.protobuf.generated.ClientMasterServiceProtos.GetJobReportRequest;
 import com.tencent.angel.protobuf.generated.ClientMasterServiceProtos.GetJobReportResponse;
@@ -82,6 +82,8 @@ public class AppTest {
       conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
       conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
       conf.setInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, 2);
+      conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
 
       // get a angel client
       angelClient = AngelClientFactory.get(conf);

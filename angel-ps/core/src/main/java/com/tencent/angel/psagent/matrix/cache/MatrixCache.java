@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
  *
  * https://opensource.org/licenses/Apache-2.0
@@ -20,8 +20,9 @@ package com.tencent.angel.psagent.matrix.cache;
 
 import com.tencent.angel.PartitionKey;
 import com.tencent.angel.ml.matrix.MatrixMeta;
-import com.tencent.angel.ps.storage.matrix.PartitionSourceMap;
-import com.tencent.angel.ps.storage.matrix.ServerPartition;
+import com.tencent.angel.ps.storage.partition.RowBasedPartition;
+import com.tencent.angel.ps.storage.partition.ServerPartitionFactory;
+import com.tencent.angel.ps.storage.partition.storage.SparseServerRowsStorage;
 import com.tencent.angel.ps.storage.vector.ServerRow;
 import com.tencent.angel.psagent.PSAgentContext;
 
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Cache for a single matrix.
  */
 public class MatrixCache {
+
   /**
    * matrix id
    */
@@ -40,7 +42,7 @@ public class MatrixCache {
   /**
    * partition key to partition map
    */
-  private final ConcurrentHashMap<PartitionKey, ServerPartition> partitionCacheMap;
+  private final ConcurrentHashMap<PartitionKey, RowBasedPartition> partitionCacheMap;
 
   /**
    * Create a new MatrixCache.
@@ -49,7 +51,7 @@ public class MatrixCache {
    */
   public MatrixCache(int matrixId) {
     this.matrixId = matrixId;
-    this.partitionCacheMap = new ConcurrentHashMap<PartitionKey, ServerPartition>();
+    this.partitionCacheMap = new ConcurrentHashMap<>();
   }
 
   /**
@@ -58,19 +60,19 @@ public class MatrixCache {
    * @param partKey partition key
    * @return matrix partition
    */
-  public ServerPartition getPartition(PartitionKey partKey) {
+  public RowBasedPartition getPartition(PartitionKey partKey) {
     return partitionCacheMap.get(partKey);
   }
 
   /**
    * Get a row split from cache
    *
-   * @param partKey  partition key
+   * @param partKey partition key
    * @param rowIndex row index
    * @return the row split
    */
   public ServerRow getRowSplit(PartitionKey partKey, int rowIndex) {
-    ServerPartition partCache = partitionCacheMap.get(partKey);
+    RowBasedPartition partCache = partitionCacheMap.get(partKey);
     if (partCache == null) {
       return null;
     }
@@ -84,19 +86,19 @@ public class MatrixCache {
   /**
    * Get a batch of row splits that belong to a matrix partition
    *
-   * @param partKey    partition key
+   * @param partKey partition key
    * @param rowIndexes row indexes
    * @return a batch of row splits
    */
   public List<ServerRow> getRowsSplit(PartitionKey partKey, List<Integer> rowIndexes) {
-    ServerPartition partCache = partitionCacheMap.get(partKey);
+    RowBasedPartition partCache = partitionCacheMap.get(partKey);
     if (partCache == null) {
       return null;
     }
     return partCache.getRows(rowIndexes);
   }
 
-  public ConcurrentHashMap<PartitionKey, ServerPartition> getPartitionCacheMap() {
+  public ConcurrentHashMap<PartitionKey, RowBasedPartition> getPartitionCacheMap() {
     return partitionCacheMap;
   }
 
@@ -104,10 +106,10 @@ public class MatrixCache {
    * Update a matrix partition in the cache
    *
    * @param partKey partition key
-   * @param part    matrix partition
+   * @param part matrix partition
    */
-  public void update(PartitionKey partKey, ServerPartition part) {
-    ServerPartition partCache = partitionCacheMap.get(partKey);
+  public void update(PartitionKey partKey, RowBasedPartition part) {
+    RowBasedPartition partCache = partitionCacheMap.get(partKey);
     if (partCache == null || partCache.getClock() <= part.getClock()) {
       partitionCacheMap.put(partKey, part);
     }
@@ -116,37 +118,41 @@ public class MatrixCache {
   /**
    * Update a row split in the cache
    *
-   * @param partKey  partition key
+   * @param partKey partition key
    * @param rowSplit row split
    */
   public void update(PartitionKey partKey, ServerRow rowSplit) {
-    ServerPartition partCache = partitionCacheMap.get(partKey);
+    RowBasedPartition partCache = partitionCacheMap.get(partKey);
     if (partCache == null) {
-      MatrixMeta matrixMeta = PSAgentContext.get().getMatrixMetaManager().getMatrixMeta(matrixId);
-      partitionCacheMap
-        .putIfAbsent(partKey, new ServerPartition(partKey, matrixMeta.getRowType(), 0));
+      initPart(partKey);
       partCache = partitionCacheMap.get(partKey);
     }
 
-    partCache.update(rowSplit);
+    partCache.putRow(rowSplit);
   }
 
   /**
    * Update a batch row splits in the cache
    *
-   * @param partKey   partition key
+   * @param partKey partition key
    * @param rowsSplit a batch row splits
    */
   public void update(PartitionKey partKey, List<ServerRow> rowsSplit) {
-    ServerPartition partCache = partitionCacheMap.get(partKey);
+    RowBasedPartition partCache = partitionCacheMap.get(partKey);
     if (partCache == null) {
-      MatrixMeta matrixMeta = PSAgentContext.get().getMatrixMetaManager().getMatrixMeta(matrixId);
-      partitionCacheMap
-        .putIfAbsent(partKey, new ServerPartition(partKey, matrixMeta.getRowType(), 0));
+      initPart(partKey);
       partCache = partitionCacheMap.get(partKey);
     }
 
-    partCache.update(rowsSplit);
+    partCache.putRows(rowsSplit);
+  }
+
+  private void initPart(PartitionKey partKey) {
+    MatrixMeta matrixMeta = PSAgentContext.get().getMatrixMetaManager().getMatrixMeta(matrixId);
+    partitionCacheMap
+        .putIfAbsent(partKey, (RowBasedPartition) ServerPartitionFactory
+            .getPartition(partKey, RowBasedPartition.class, SparseServerRowsStorage.class,
+                matrixMeta.getRowType(), null, matrixMeta.getEstSparsity()));
   }
 
   /**

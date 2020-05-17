@@ -23,7 +23,7 @@ import com.tencent.angel.client.AngelClientFactory;
 import com.tencent.angel.conf.AngelConf;
 import com.tencent.angel.conf.MatrixConf;
 import com.tencent.angel.ml.matrix.MatrixContext;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.protobuf.generated.MLProtos;
 import com.tencent.angel.ps.PSAttemptId;
 import com.tencent.angel.ps.ParameterServerId;
@@ -65,6 +65,10 @@ public class LocalClusterHelper {
     conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
     conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
     conf.setInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, 2);
+
+    conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+    conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+    conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
 
     // get a angel client
     angelClient = AngelClientFactory.get(conf);

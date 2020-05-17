@@ -26,10 +26,11 @@ import com.tencent.angel.ml.matrix.psf.update.base.PartitionUpdateParam;
 import com.tencent.angel.ml.matrix.psf.update.base.UpdateFunc;
 import com.tencent.angel.ml.matrix.psf.update.base.VoidResult;
 import com.tencent.angel.ps.ParameterServerId;
+import com.tencent.angel.ps.server.data.request.InitFunc;
 import com.tencent.angel.ps.server.data.request.UpdateItem;
 import com.tencent.angel.ps.server.data.request.UpdateOp;
 import com.tencent.angel.ps.server.data.response.GetClocksResponse;
-import com.tencent.angel.ps.storage.matrix.ServerPartition;
+import com.tencent.angel.ps.storage.partition.ServerPartition;
 import com.tencent.angel.ps.storage.vector.ServerRow;
 import com.tencent.angel.psagent.matrix.oplog.cache.RowUpdateSplit;
 import com.tencent.angel.psagent.matrix.transport.adapter.*;
@@ -130,10 +131,10 @@ public interface MatrixTransportInterface {
    * @param value         indices
    */
   FutureResult<IndexPartGetRowResult> indexGetRow(int userRequestId, int matrixId, int rowId,
-    PartitionKey key, IndicesView value);
+    PartitionKey key, IndicesView value, InitFunc func);
 
   FutureResult<IndexPartGetRowsResult> indexGetRows(int requestId, int matrixId,
-    PartitionKey partKey, List<Integer> rowIds, IndicesView colIds);
+    PartitionKey partKey, List<Integer> rowIds, IndicesView colIds, InitFunc func);
 
   FutureResult<VoidResult> plus(int requestId, int matrixId, PartitionKey partKey,
     UpdateItem updateItem, TaskContext taskContext, int clock, boolean updateClock);

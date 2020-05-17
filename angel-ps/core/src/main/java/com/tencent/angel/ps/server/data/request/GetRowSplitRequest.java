@@ -20,7 +20,7 @@ package com.tencent.angel.ps.server.data.request;
 
 import com.tencent.angel.PartitionKey;
 import com.tencent.angel.ml.matrix.MatrixMeta;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.ps.server.data.TransportMethod;
 import com.tencent.angel.psagent.PSAgentContext;
 import io.netty.buffer.ByteBuf;
@@ -113,24 +113,6 @@ public class GetRowSplitRequest extends PartitionRequest {
         }
       }
     }
-  }
-
-  @Override public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + rowIndex;
-    return result;
-  }
-
-  @Override public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    GetRowSplitRequest other = (GetRowSplitRequest) obj;
-    return rowIndex == other.rowIndex;
   }
 
   @Override public String toString() {

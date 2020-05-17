@@ -19,13 +19,17 @@
 package com.tencent.angel.ml.math2.vector;
 
 import com.tencent.angel.ml.math2.ufuncs.executor.comp.CompReduceExecutor;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 
 public class Comp${itype}${dtype}Vector extends ${dtype}Vector implements ${itype}KeyVector, ComponentVector {
     private ${itype}${dtype}Vector [ ] partitions;
     private int numPartitions;
     private $itype.toLowerCase() dim;
     private $itype.toLowerCase() subDim;
+
+	public Comp${itype}${dtype}Vector(){
+		super();
+	}
 
     public Comp${itype}${dtype}Vector(int matrixId, int rowId, int clock, $itype.toLowerCase() dim, ${itype}${dtype}Vector [ ] partitions, $itype.toLowerCase() subDim) {
         setMatrixId(matrixId);
@@ -195,6 +199,16 @@ public class Comp${itype}${dtype}Vector extends ${dtype}Vector implements ${ityp
         }
         return new Comp${itype}${dtype}Vector(getMatrixId(), getRowId(), getClock(), ($itype.toLowerCase())getDim(), newPartitions, subDim);
     }
+
+	@Override
+	public Comp${itype}${dtype}Vector emptyLike() {
+		${itype}${dtype}Vector[] newPartitions = new ${itype}${dtype}Vector[partitions.length];
+		for (int i = 0; i < partitions.length; i++) {
+		  newPartitions[i] = partitions[i].emptyLike();
+		}
+		return new Comp${itype}${dtype}Vector(getMatrixId(), getRowId(), getClock(), (int) getDim(),
+				newPartitions, subDim);
+	 }
 
     @Override
     public int getTypeIndex() {

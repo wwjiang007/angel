@@ -18,25 +18,46 @@
 
 package com.tencent.angel.ml.core.optimizer
 
-import com.tencent.angel.ml.psf.optimizer.{PGDUpdateFunc, SGDUpdateFunc}
+import java.util.concurrent.Future
+
+import com.tencent.angel.ml.core.PSOptimizerProvider
+import com.tencent.angel.mlcore.conf.{MLCoreConf, SharedConf}
+import com.tencent.angel.mlcore.utils.OptimizerKeys
+import com.tencent.angel.mlcore.variable.Variable
+import com.tencent.angel.ml.core.variable.PSVariable
+import com.tencent.angel.ml.psf.optimizer.PGDUpdateFunc
+import com.tencent.angel.mlcore.optimizer.{Optimizer, OptimizerProvider}
 import com.tencent.angel.psagent.PSAgentContext
+import org.apache.commons.logging.LogFactory
+import org.json4s.JsonAST.{JField, JObject, JString}
 
-class SGD(override val stepSize: Double) extends GradientDescent(stepSize) {
+class SGD(override var lr: Double) extends Optimizer {
+  private val LOG = LogFactory.getLog(classOf[SGD])
 
-  override def update(matrixId: Int, numFactors: Int, epoch: Int = 0): Unit = {
+  override val numSlot: Int = 0
 
-    if (regL1Param == 0.0) {
-      // l2 regularization
-      val func = new SGDUpdateFunc(matrixId, numFactors, lr, regL2Param)
-      PSAgentContext.get().getUserRequestAdapter.update(func)
-    } else {
-      // l1 regularization
-      val func = new PGDUpdateFunc(matrixId, numFactors, lr, regL1Param, regL2Param)
-      PSAgentContext.get().getUserRequestAdapter.update(func)
-    }
+  override def update[T](variable: Variable, epoch: Int, batchSize: Int = 1): Future[T] = {
+    val matrixId = variable.asInstanceOf[PSVariable].getMatrixId
+    val func = new PGDUpdateFunc(matrixId, variable.asInstanceOf[PSVariable].numFactors,
+      lr, regL1Param, regL2Param, batchSize)
+    PSAgentContext.get().getUserRequestAdapter.update(func).asInstanceOf[Future[T]]
   }
 
   override def toString: String = {
     s"SGD lr=$lr regL2=$regL2Param regL1=$regL1Param"
+  }
+}
+
+
+object SGD {
+  def fromJson(jast: JObject, provider: OptimizerProvider)(implicit conf: SharedConf): SGD = {
+    val psProvider = provider.asInstanceOf[PSOptimizerProvider]
+    assert(psProvider.fieldEqualClassName[SGD](jast, OptimizerKeys.typeKey))
+
+    val regL1Param: Double  = conf.getDouble(MLCoreConf.ML_REG_L1, MLCoreConf.DEFAULT_ML_REG_L1)
+    val regL2Param: Double  = conf.getDouble(MLCoreConf.ML_REG_L2, MLCoreConf.DEFAULT_ML_REG_L2)
+    val lr = conf.getDouble(MLCoreConf.ML_LEARN_RATE, MLCoreConf.DEFAULT_ML_LEARN_RATE)
+    val opt = new SGD(lr)
+    opt.setRegL1Param(regL1Param).setRegL2Param(regL2Param)
   }
 }

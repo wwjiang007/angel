@@ -19,9 +19,10 @@
 package com.tencent.angel.ml.deepfm;
 
 import com.tencent.angel.conf.AngelConf;
-import com.tencent.angel.ml.core.conf.MLConf;
+import com.tencent.angel.ml.core.PSOptimizerProvider;
+import com.tencent.angel.ml.core.conf.AngelMLConf;
 import com.tencent.angel.ml.core.graphsubmit.GraphRunner;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.mlcore.conf.MLCoreConf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -38,7 +39,7 @@ public class DeepFMTest {
   private Configuration conf = new Configuration();
   private static final Log LOG = LogFactory.getLog(DeepFMTest.class);
   private static String LOCAL_FS = FileSystem.DEFAULT_FS;
-  private static String CLASSBASE = "com.tencent.angel.ml.classification.";
+  private static String CLASSBASE = "com.tencent.angel.ml.core.graphsubmit.";
   private static String TMP_PATH = System.getProperty("java.io.tmpdir", "/tmp");
 
   static {
@@ -55,23 +56,23 @@ public class DeepFMTest {
       conf.set(AngelConf.ANGEL_INPUTFORMAT_CLASS, CombineTextInputFormat.class.getName());
       conf.setBoolean(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, true);
       conf.set(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, "true");
-      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 100);
+      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+      conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
 
       //set angel resource parameters #worker, #task, #PS
       conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
       conf.setInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, 1);
       conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
 
-      String savePath = LOCAL_FS + TMP_PATH + "/model/deepFM";
       String logPath = LOCAL_FS + TMP_PATH + "/DeepFMlog";
-      // Set save model path
-      conf.set(AngelConf.ANGEL_SAVE_MODEL_PATH, savePath);
       // Set log path
       conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
+      conf.set(MLCoreConf.ML_OPTIMIZER_JSON_PROVIDER(), PSOptimizerProvider.class.getName());
 
       String angelConfFile = "./src/test/jsons/deepfm.json";
       conf.set(AngelConf.ANGEL_ML_CONF, angelConfFile);
-      conf.set(MLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "DeepFM");
+      conf.set(AngelMLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "AngelModel");
 
     } catch (Exception x) {
       LOG.error("setup failed ", x);
@@ -82,6 +83,7 @@ public class DeepFMTest {
   @Test public void testDeepFM() throws Exception {
     setSystemConf();
     trainTest();
+    incTrainTest();
     predictTest();
   }
 
@@ -90,8 +92,31 @@ public class DeepFMTest {
       String inputPath = "../../data/census/census_148d_train.dummy";
       conf.set(AngelConf.ANGEL_TRAIN_DATA_PATH, inputPath);
 
+      String savePath = LOCAL_FS + TMP_PATH + "/model/deepFM";
+      // Set save model path
+      conf.set(AngelConf.ANGEL_SAVE_MODEL_PATH, savePath);
+
       // Set actionType train
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
+
+      GraphRunner runner = new GraphRunner();
+      runner.train(conf);
+    } catch (Exception x) {
+      LOG.error("run trainOnLocalClusterTest failed ", x);
+      throw x;
+    }
+  }
+
+  private void incTrainTest() throws Exception {
+    try {
+      String inputPath = "../../data/census/census_148d_train.dummy";
+      conf.set(AngelConf.ANGEL_TRAIN_DATA_PATH, inputPath);
+
+      // Set actionType train
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
+
+      conf.set(AngelConf.ANGEL_LOAD_MODEL_PATH, LOCAL_FS + TMP_PATH + "/model/deepFM");
+      conf.set(AngelConf.ANGEL_SAVE_MODEL_PATH, LOCAL_FS + TMP_PATH + "/model/deepFM_new");
 
       GraphRunner runner = new GraphRunner();
       runner.train(conf);
@@ -116,7 +141,7 @@ public class DeepFMTest {
       conf.set(AngelConf.ANGEL_PREDICT_PATH, predictPath);
 
       // Set actionType prediction
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_PREDICT());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_PREDICT());
 
       GraphRunner runner = new GraphRunner();
       runner.predict(conf);

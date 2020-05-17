@@ -7,14 +7,14 @@
   "layers": [
     {
       "name": "wide",
-      "type": "sparseinputlayer",
-      "outputdim": 2,
+      "type": "simpleinputlayer",
+      "outputdim": 3,
       "transfunc": "identity"
     },
     {
       "name": "softmaxlosslayer",
-      "type": "softmaxlosslayer",
-      "lossfunc": "softmax",
+      "type": "simplelosslayer",
+      "lossfunc": "softmaxloss",
       "inputlayer": "wide"
     }
   ]

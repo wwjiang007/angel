@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2017-2018 THL A29 Limited, a Tencent company. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
  *
  * https://opensource.org/licenses/Apache-2.0
@@ -19,9 +19,11 @@
 package com.tencent.angel.ml.regression;
 
 import com.tencent.angel.conf.AngelConf;
-import com.tencent.angel.ml.core.conf.MLConf;
+import com.tencent.angel.ml.core.PSOptimizerProvider;
+import com.tencent.angel.ml.core.conf.AngelMLConf;
 import com.tencent.angel.ml.core.graphsubmit.GraphRunner;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
+import com.tencent.angel.mlcore.conf.MLCoreConf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -33,16 +35,16 @@ import org.junit.Test;
 
 
 public class LinearRegTest {
-  private Configuration conf = new Configuration();
   private static final Log LOG = LogFactory.getLog(LinearRegTest.class);
   private static String LOCAL_FS = FileSystem.DEFAULT_FS;
   private static String CLASSBASE = "com.tencent.angel.ml.regression.";
   private static String TMP_PATH = System.getProperty("java.io.tmpdir", "/tmp");
 
-
   static {
     PropertyConfigurator.configure("../conf/log4j.properties");
   }
+
+  private Configuration conf = new Configuration();
 
   @Before public void setConf() throws Exception {
     try {
@@ -68,6 +70,8 @@ public class LinearRegTest {
       double decay = 2;
       // Regularization coefficient
       double reg = 0.0001;
+      // Model type
+      String jsonFile = "./src/test/jsons/linreg.json";
 
       // Set local deploy mode
       conf.set(AngelConf.ANGEL_DEPLOY_MODE, "LOCAL");
@@ -79,12 +83,14 @@ public class LinearRegTest {
       conf.setBoolean("mapred.mapper.new-api", true);
       conf.set(AngelConf.ANGEL_INPUTFORMAT_CLASS, CombineTextInputFormat.class.getName());
       conf.setBoolean(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, true);
-      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 100);
+      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+      conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
 
       // Set data format
-      conf.set(MLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
-      conf.set(MLConf.ML_MODEL_TYPE(), modelType);
-      conf.setBoolean(MLConf.ML_MODEL_IS_CLASSIFICATION(), isClassification);
+      conf.set(AngelMLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
+      conf.set(AngelMLConf.ML_MODEL_TYPE(), modelType);
+      conf.setBoolean(AngelMLConf.ML_MODEL_IS_CLASSIFICATION(), isClassification);
 
       // set angel resource parameters #worker, #task, #PS
       conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
@@ -92,16 +98,18 @@ public class LinearRegTest {
       conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
 
       // set sgd LR algorithm parameters #feature #epoch
-      conf.set(MLConf.ML_FEATURE_INDEX_RANGE(), String.valueOf(featureNum));
-      conf.set(MLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
-      conf.set(MLConf.ML_BATCH_SAMPLE_RATIO(), String.valueOf(spRatio));
-      conf.set(MLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
-      conf.set(MLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
-      conf.set(MLConf.ML_LEARN_DECAY(), String.valueOf(decay));
-      conf.set(MLConf.ML_REG_L2(), String.valueOf(reg));
-      conf.setLong(MLConf.ML_MODEL_SIZE(), 124L);
-      conf.setLong(MLConf.ML_MINIBATCH_SIZE(), 1024);
-      conf.set(MLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "LinearRegression");
+      conf.set(AngelMLConf.ML_FEATURE_INDEX_RANGE(), String.valueOf(featureNum));
+      conf.set(AngelMLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
+      conf.set(AngelMLConf.ML_BATCH_SAMPLE_RATIO(), String.valueOf(spRatio));
+      conf.set(AngelMLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
+      conf.set(AngelMLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
+      conf.set(AngelMLConf.ML_OPT_DECAY_ALPHA(), String.valueOf(decay));
+      conf.set(AngelMLConf.ML_REG_L2(), String.valueOf(reg));
+      conf.setLong(AngelMLConf.ML_MODEL_SIZE(), 124L);
+      conf.set(AngelMLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "LinearRegression");
+//      conf.setStrings(AngelConf.ANGEL_ML_CONF, jsonFile);
+      conf.set(MLCoreConf.ML_OPTIMIZER_JSON_PROVIDER(), PSOptimizerProvider.class.getName());
+
     } catch (Exception e) {
       LOG.error("setup failed ", e);
       throw e;
@@ -121,7 +129,7 @@ public class LinearRegTest {
       // Set log path
       conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
       // Set actionType train
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
 
       GraphRunner runner = new GraphRunner();
       runner.train(conf);
@@ -130,6 +138,37 @@ public class LinearRegTest {
       throw e;
     }
   }
+
+
+  private void incTrain() {
+    try {
+      String inputPath = "../../data/abalone/abalone_8d_train.libsvm";
+      String savePath = LOCAL_FS + TMP_PATH + "/model/LinearReg";
+      String newPath = LOCAL_FS + TMP_PATH + "/model/NewLinearReg";
+      String logPath = LOCAL_FS + TMP_PATH + "/log/LinearReg/trainLog";
+
+      // Set trainning data path
+      conf.set(AngelConf.ANGEL_TRAIN_DATA_PATH, inputPath);
+      // Set load model path
+      conf.set(AngelConf.ANGEL_LOAD_MODEL_PATH, savePath);
+      // Set save model path
+      conf.set(AngelConf.ANGEL_SAVE_MODEL_PATH, newPath);
+      // Set actionType incremental train
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_INC_TRAIN());
+      // Set log path
+      conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
+      conf.set(MLCoreConf.ML_OPTIMIZER_JSON_PROVIDER(), PSOptimizerProvider.class.getName());
+
+
+
+      GraphRunner runner = new GraphRunner();
+      runner.train(conf);
+    } catch (Exception e) {
+      LOG.error("run incTrainTest failed", e);
+      throw e;
+    }
+  }
+
 
   private void predictTest() {
     try {
@@ -146,8 +185,8 @@ public class LinearRegTest {
 
       conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
       // Set actionType prediction
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_INC_TRAIN());
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_PREDICT());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_INC_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_PREDICT());
 
       GraphRunner runner = new GraphRunner();
       runner.predict(conf);
@@ -160,6 +199,7 @@ public class LinearRegTest {
   @Test public void testLR() throws Exception {
     setConf();
     trainTest();
+    incTrain();
     predictTest();
   }
 }

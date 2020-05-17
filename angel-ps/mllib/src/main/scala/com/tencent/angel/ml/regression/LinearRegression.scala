@@ -19,30 +19,27 @@
 package com.tencent.angel.ml.regression
 
 
-import com.tencent.angel.ml.core.conf.MLConf
-import com.tencent.angel.ml.core.graphsubmit.GraphModel
-import com.tencent.angel.ml.core.network.layers.edge.inputlayer.{DenseInputLayer, SparseInputLayer}
-import com.tencent.angel.ml.core.network.layers.edge.losslayer.SimpleLossLayer
-import com.tencent.angel.ml.core.network.transfunc.Identity
-import com.tencent.angel.ml.core.optimizer.OptUtils
-import com.tencent.angel.ml.core.optimizer.loss.L2Loss
+import com.tencent.angel.ml.core.PSOptimizerProvider
+import com.tencent.angel.mlcore.conf.{MLCoreConf, SharedConf}
+import com.tencent.angel.ml.core.graphsubmit.AngelModel
+import com.tencent.angel.mlcore.network.Identity
+import com.tencent.angel.mlcore.network.layers.LossLayer
+import com.tencent.angel.mlcore.network.layers.leaf.SimpleInputLayer
+import com.tencent.angel.mlcore.optimizer.loss.L2Loss
 import com.tencent.angel.worker.task.TaskContext
-import org.apache.hadoop.conf.Configuration
 
-class LinearRegression(conf: Configuration, _ctx: TaskContext = null)
-  extends GraphModel(conf, _ctx) {
 
-  override val lossFunc = new L2Loss()
+class LinearRegression(conf: SharedConf, _ctx: TaskContext = null) extends AngelModel(conf, _ctx) {
+  val optProvider = new PSOptimizerProvider(conf)
 
-  override def buildNetwork(): Unit = {
-    val input = dataFormat match {
-      case "dense" | "component_sparse" => new DenseInputLayer("input", 1, new Identity(),
-        OptUtils.getOptimizer(MLConf.ML_DENSEINPUTLAYER_OPTIMIZER))
-      case _ => new SparseInputLayer("input", 1, new Identity(),
-        OptUtils.getOptimizer(MLConf.ML_SPARSEINPUTLAYER_OPTIMIZER))
-    }
+  override def buildNetwork(): this.type = {
+    val ipOptName: String = conf.get(MLCoreConf.ML_INPUTLAYER_OPTIMIZER, MLCoreConf.DEFAULT_ML_INPUTLAYER_OPTIMIZER)
 
-    new SimpleLossLayer("simpleLossLayer", input, lossFunc)
+    val input = new SimpleInputLayer("input", 1, new Identity(), optProvider.getOptimizer(ipOptName))
+
+    new LossLayer("simpleLossLayer", input, new L2Loss())
+
+    this
   }
 
 }

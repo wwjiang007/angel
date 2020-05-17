@@ -18,6 +18,7 @@
 
 package com.tencent.angel.master.worker;
 
+import com.tencent.angel.AngelDeployMode;
 import com.tencent.angel.conf.AngelConf;
 import com.tencent.angel.master.app.AMContext;
 import com.tencent.angel.master.app.AppEvent;
@@ -49,6 +50,7 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -117,6 +119,12 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
    */
   private final Map<TaskId, AMWorker> taskIdToWorkerMap;
 
+
+  /**
+   * Running worker group id set
+   */
+  private final Set<WorkerGroupId> runningGroups;
+
   /**
    * success worker group id set
    */
@@ -137,6 +145,13 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
    */
   private final ConcurrentHashMap<WorkerAttemptId, Long> workerLastHeartbeatTS =
     new ConcurrentHashMap<>();
+
+  /**
+   * worker attempt id queue for kubernetes allocator
+   */
+  private final LinkedBlockingDeque<WorkerAttemptId> workerAttemptIdBlockingQueue =
+          new LinkedBlockingDeque<>();
+
   /**
    * worker timeout value in millisecond
    */
@@ -181,13 +196,14 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
       RecordFactoryProvider.getRecordFactory(null).newRecordInstance(Priority.class);
     PRIORITY_WORKER.setPriority(workerPriority);
 
-    workerGroupMap = new HashMap<WorkerGroupId, AMWorkerGroup>();
-    findWorkerGroupMap = new HashMap<WorkerId, AMWorkerGroup>();
-    workersMap = new HashMap<WorkerId, AMWorker>();
-    taskIdToWorkerMap = new HashMap<TaskId, AMWorker>();
-    successGroups = new HashSet<WorkerGroupId>();
-    killedGroups = new HashSet<WorkerGroupId>();
-    failedGroups = new HashSet<WorkerGroupId>();
+    workerGroupMap = new HashMap<>();
+    findWorkerGroupMap = new HashMap<>();
+    workersMap = new HashMap<>();
+    taskIdToWorkerMap = new HashMap<>();
+    runningGroups = new HashSet<>();
+    successGroups = new HashSet<>();
+    killedGroups = new HashSet<>();
+    failedGroups = new HashSet<>();
   }
 
   public AMWorkerGroup getWorkGroup(WorkerId workerId) {
@@ -222,6 +238,19 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
 
   @SuppressWarnings("unchecked") private void handleEvent(WorkerManagerEvent event) {
     switch (event.getType()) {
+      case WORKERGROUP_REGISTER: {
+        WorkerGroupManagerEvent workerGroupEvent = (WorkerGroupManagerEvent) event;
+        //add this worker group to the success set
+        runningGroups.add(workerGroupEvent.getWorkerGroupId());
+
+        //check if all worker group run or run over
+        if (runningGroups.size() == workerGroupMap.size()) {
+          LOG.info("now all WorkerGroups are finished!");
+          context.getEventHandler().handle(new AppEvent(AppEventType.ALL_WORKERS_LAUNCHED));
+        }
+        break;
+      }
+
       case WORKERGROUP_DONE: {
         WorkerGroupManagerEvent workerGroupEvent = (WorkerGroupManagerEvent) event;
         //add this worker group to the success set
@@ -421,6 +450,15 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
     }
   }
 
+    /**
+     * parameter server attempt id queue
+     * @return LinkedBlockingDeque<PSAttemptId>
+     */
+
+    public LinkedBlockingDeque<WorkerAttemptId> getWorkerAttemptIdBlockingQueue() {
+        return workerAttemptIdBlockingQueue;
+    }
+
   /**
    * get actual total task number
    *
@@ -458,6 +496,20 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
     try {
       readLock.lock();
       return workersMap.size();
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  /**
+   * get worker number
+   *
+   * @return int worker number
+   */
+  public int getRegisterWorkerNumber() {
+    try {
+      readLock.lock();
+      return workerLastHeartbeatTS.size();
     } finally {
       readLock.unlock();
     }
@@ -608,6 +660,9 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
   public void register(WorkerAttemptId workerAttemptId) {
     LOG.info(workerAttemptId + " is registered in monitor!");
     workerLastHeartbeatTS.put(workerAttemptId, System.currentTimeMillis());
+    if (context.getDeployMode() == AngelDeployMode.KUBERNETES) {
+        workerAttemptIdBlockingQueue.add(workerAttemptId);
+    }
   }
 
   /**
@@ -646,4 +701,5 @@ public class WorkerManager implements EventHandler<WorkerManagerEvent> {
   public int getSuccessWorkerGroupNum() {
     return successGroups.size();
   }
+
 }

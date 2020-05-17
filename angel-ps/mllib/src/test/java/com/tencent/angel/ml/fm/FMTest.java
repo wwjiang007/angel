@@ -19,9 +19,11 @@
 package com.tencent.angel.ml.fm;
 
 import com.tencent.angel.conf.AngelConf;
-import com.tencent.angel.ml.core.conf.MLConf;
+import com.tencent.angel.ml.core.PSOptimizerProvider;
+import com.tencent.angel.ml.core.conf.AngelMLConf;
 import com.tencent.angel.ml.core.graphsubmit.GraphRunner;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
+import com.tencent.angel.mlcore.conf.MLCoreConf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -53,7 +55,7 @@ public class FMTest {
       // Feature number of train data
       int featureNum = 123;
       // Total iteration number
-      int epochNum = 20;
+      int epochNum = 5;
       // Validation sample Ratio
       double vRatio = 0.1;
       // Data format, libsvm or dummy
@@ -75,10 +77,13 @@ public class FMTest {
       conf.setBoolean("mapred.mapper.new-api", true);
       conf.set(AngelConf.ANGEL_INPUTFORMAT_CLASS, CombineTextInputFormat.class.getName());
       conf.setBoolean(AngelConf.ANGEL_JOB_OUTPUT_PATH_DELETEONEXIST, true);
-      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 100);
+      conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+      conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
+      conf.setBoolean(AngelConf.ANGEL_PS_USE_ADAPTIVE_STORAGE_ENABLE, false);
 
       // Set data format
-      conf.set(MLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
+      conf.set(AngelMLConf.ML_DATA_INPUT_FORMAT(), dataFmt);
 
       //set angel resource parameters #worker, #task, #PS
       conf.setInt(AngelConf.ANGEL_WORKERGROUP_NUMBER, 1);
@@ -86,16 +91,16 @@ public class FMTest {
       conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
 
       //set sgd FM algorithm parameters #feature #epoch
-      conf.set(MLConf.ML_MODEL_TYPE(), modelType);
-      conf.setLong(MLConf.ML_FEATURE_INDEX_RANGE(), Long.MAX_VALUE);
-      conf.set(MLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
-      conf.set(MLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
-      conf.set(MLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
-      conf.set(MLConf.ML_LEARN_DECAY(), String.valueOf(decay));
-      conf.set(MLConf.ML_REG_L2(), String.valueOf(reg));
-      conf.setLong(MLConf.ML_MODEL_SIZE(), featureNum);
-      conf.setLong(MLConf.ML_RANK_NUM(), 4);
-      conf.set(MLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "FactorizationMachines");
+      conf.set(AngelMLConf.ML_MODEL_TYPE(), modelType);
+      conf.setLong(AngelMLConf.ML_FEATURE_INDEX_RANGE(), featureNum * 2);
+      conf.set(AngelMLConf.ML_EPOCH_NUM(), String.valueOf(epochNum));
+      conf.set(AngelMLConf.ML_VALIDATE_RATIO(), String.valueOf(vRatio));
+      conf.set(AngelMLConf.ML_LEARN_RATE(), String.valueOf(learnRate));
+      conf.set(AngelMLConf.ML_OPT_DECAY_ALPHA(), String.valueOf(decay));
+      conf.set(AngelMLConf.ML_REG_L2(), String.valueOf(reg));
+      conf.setLong(AngelMLConf.ML_MODEL_SIZE(), featureNum);
+      conf.setLong(AngelMLConf.ML_RANK_NUM(), 4);
+      conf.set(AngelMLConf.ML_MODEL_CLASS_NAME(), CLASSBASE + "FactorizationMachines");
     } catch (Exception x) {
       LOG.error("setup failed ", x);
       throw x;
@@ -105,6 +110,7 @@ public class FMTest {
   @Test public void testFM() throws Exception {
     setConf();
     trainTest();
+    inctrainTest();
     predictTest();
   }
 
@@ -114,6 +120,7 @@ public class FMTest {
       String savePath = LOCAL_FS + TMP_PATH + "/FMmodel";
       String logPath = LOCAL_FS + TMP_PATH + "/FMlog";
 
+      conf.setInt(AngelConf.ANGEL_PS_NUMBER, 4);
       // Set trainning data path
       conf.set(AngelConf.ANGEL_TRAIN_DATA_PATH, inputPath);
       // Set save model path
@@ -121,8 +128,34 @@ public class FMTest {
       // Set log path
       conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
       // Set actionType train
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
 
+      GraphRunner runner = new GraphRunner();
+      runner.train(conf);
+    } catch (Exception x) {
+      LOG.error("run trainOnLocalClusterTest failed ", x);
+      throw x;
+    }
+  }
+
+  private void inctrainTest() throws Exception {
+    try {
+      String inputPath = "../../data/a9a/a9a_123d_train.libsvm";
+      String loadPath = LOCAL_FS + TMP_PATH + "/FMmodel";
+      String savePath = LOCAL_FS + TMP_PATH + "/FMmodel_new";
+      String logPath = LOCAL_FS + TMP_PATH + "/FMlog";
+
+      conf.set(AngelConf.ANGEL_LOAD_MODEL_PATH, loadPath);
+      conf.setInt(AngelConf.ANGEL_PS_NUMBER, 3);
+      // Set trainning data path
+      conf.set(AngelConf.ANGEL_TRAIN_DATA_PATH, inputPath);
+      // Set save model path
+      conf.set(AngelConf.ANGEL_SAVE_MODEL_PATH, savePath);
+      // Set log path
+      conf.set(AngelConf.ANGEL_LOG_PATH, logPath);
+      // Set actionType train
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_TRAIN());
+      conf.set(MLCoreConf.ML_OPTIMIZER_JSON_PROVIDER(), PSOptimizerProvider.class.getName());
       GraphRunner runner = new GraphRunner();
       runner.train(conf);
     } catch (Exception x) {
@@ -134,10 +167,11 @@ public class FMTest {
   private void predictTest() throws Exception {
     try {
       String inputPath = "../../data/a9a/a9a_123d_train.libsvm";
-      String loadPath = LOCAL_FS + TMP_PATH + "/FMmodel";
+      String loadPath = LOCAL_FS + TMP_PATH + "/FMmodel_new";
       String predictPath = LOCAL_FS + TMP_PATH + "/predict";
       String logPath = LOCAL_FS + TMP_PATH + "/FMlog";
 
+      conf.setInt(AngelConf.ANGEL_PS_NUMBER, 1);
       // Set trainning data path
       conf.set(AngelConf.ANGEL_PREDICT_DATA_PATH, inputPath);
       // Set load model path
@@ -145,9 +179,9 @@ public class FMTest {
       // Set predict result path
       conf.set(AngelConf.ANGEL_PREDICT_PATH, predictPath);
       // Set actionType prediction
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_INC_TRAIN());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_INC_TRAIN());
 
-      conf.set(AngelConf.ANGEL_ACTION_TYPE, MLConf.ANGEL_ML_PREDICT());
+      conf.set(AngelConf.ANGEL_ACTION_TYPE, AngelMLConf.ANGEL_ML_PREDICT());
       GraphRunner runner = new GraphRunner();
 
       runner.predict(conf);

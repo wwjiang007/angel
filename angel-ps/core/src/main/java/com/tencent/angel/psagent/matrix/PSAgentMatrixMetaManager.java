@@ -176,6 +176,15 @@ public class PSAgentMatrixMetaManager {
   }
 
   /**
+   * Get the server that hold the partition.
+   *
+   * @return ParameterServerId server id
+   */
+  public List<ParameterServerId> getPss(int matrixId) {
+    return matrixMetaManager.getPss(matrixId);
+  }
+
+  /**
    * Get list of partitionKeys for matrixId and rowId.
    *
    * @param matrixId, matrixId
@@ -191,6 +200,7 @@ public class PSAgentMatrixMetaManager {
     List<PartitionKey> rowParts = rowPartKeysCache.get(rowIndex);
     if (rowParts == null) {
       rowParts = getPartitionsFromMeta(matrixId, rowIndex);
+
       rowPartKeysCache.put(rowIndex, rowParts);
     }
 
@@ -207,9 +217,17 @@ public class PSAgentMatrixMetaManager {
         && partitionKey.getEndRow() > rowIndex)
         partitionKeys.add(partitionKey);
     }
+
+    // Sort the partitions by start column index
     partitionKeys.sort(new Comparator<PartitionKey>() {
       @Override public int compare(PartitionKey p1, PartitionKey p2) {
-        return (int) (p1.getStartCol() - p2.getEndCol());
+        if (p1.getStartCol() < p2.getStartCol()) {
+          return -1;
+        } else if (p1.getStartCol() > p2.getStartCol()) {
+          return 1;
+        } else {
+          return 0;
+        }
       }
     });
     return partitionKeys;
@@ -241,7 +259,7 @@ public class PSAgentMatrixMetaManager {
     partitionKeys.sort((PartitionKey p1, PartitionKey p2) -> {
       if (p1.getStartCol() < p2.getStartCol()) {
         return -1;
-      } else if (p1.getStartCol() < p2.getStartCol()) {
+      } else if (p1.getStartCol() > p2.getStartCol()) {
         return 1;
       } else {
         return 0;

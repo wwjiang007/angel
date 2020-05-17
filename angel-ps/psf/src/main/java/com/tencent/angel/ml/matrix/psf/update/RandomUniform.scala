@@ -21,6 +21,8 @@ package com.tencent.angel.ml.matrix.psf.update
 import com.tencent.angel.exception.AngelException
 import com.tencent.angel.ml.matrix.psf.update.enhance.{MMUpdateFunc, MMUpdateParam}
 import com.tencent.angel.ps.storage.vector._
+import com.tencent.angel.ps.storage.vector.func.{DoubleElemUpdateFunc, FloatElemUpdateFunc, IntElemUpdateFunc, LongElemUpdateFunc}
+import com.tencent.angel.ps.storage.vector.op.{IDoubleValueOp, IFloatValueOp, IIntValueOp, ILongValueOp}
 
 /**
   * Generate a random array for `rowId`, each element belongs to uniform distribution U(min, max)
@@ -34,11 +36,36 @@ class RandomUniform(param: MMUpdateParam) extends MMUpdateFunc(param) {
   override protected def update(rows: Array[ServerRow], scalars: Array[Double]): Unit = {
     val min = scalars(0)
     val max = scalars(1)
+    val rand = new util.Random(System.currentTimeMillis())
+    val factor = max - min
     rows.foreach {
-      case r: ServerIntDoubleRow => RandomUniform.randomUniformFill[Double](min, max, r.getValues, v => v)
-      case r: ServerIntFloatRow => RandomUniform.randomUniformFill[Float](min, max, r.getValues, v => v.toFloat)
-      case r: ServerIntLongRow => RandomUniform.randomUniformFill[Long](min, max, r.getValues, v => v.toLong)
-      case r: ServerIntIntRow => RandomUniform.randomUniformFill[Int](min, max, r.getValues, v => v.toInt)
+      case r: IDoubleValueOp =>
+        r.elemUpdate(new DoubleElemUpdateFunc {
+          override def update(): Double = {
+            factor * rand.nextDouble() + min
+          }
+        })
+
+      case r: IFloatValueOp =>
+        r.elemUpdate(new FloatElemUpdateFunc {
+          override def update(): Float = {
+            (factor * rand.nextDouble() + min).toFloat
+          }
+        })
+
+      case r: IIntValueOp =>
+        r.elemUpdate(new IntElemUpdateFunc {
+          override def update(): Int = {
+            (factor * rand.nextDouble() + min).toInt
+          }
+        })
+
+      case r: ILongValueOp =>
+        r.elemUpdate(new LongElemUpdateFunc {
+          override def update(): Long = {
+            (factor * rand.nextDouble() + min).toLong
+          }
+        })
       case r => throw new AngelException(s"not implemented for ${r.getRowType}")
     }
   }

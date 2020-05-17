@@ -21,8 +21,8 @@ package com.tencent.angel.ml.matrix.psf.aggr
 ;
 
 import scala.collection.JavaConversions._
-
 import com.tencent.angel.exception.AngelException
+import com.tencent.angel.ml.math2.storage.{IntDoubleDenseVectorStorage, IntFloatDenseVectorStorage, IntIntDenseVectorStorage, IntLongDenseVectorStorage}
 import com.tencent.angel.ml.matrix.psf.aggr.enhance.{BinaryAggrFunc, ScalarAggrResult, ScalarPartitionAggrResult}
 import com.tencent.angel.ml.matrix.psf.get.base.{GetResult, PartitionGetResult}
 import com.tencent.angel.ps.storage.vector._
@@ -50,18 +50,18 @@ class Equal(matrixId: Int, rowId1: Int, rowId2: Int) extends BinaryAggrFunc(matr
   override protected def processRows(row1: ServerRow, row2: ServerRow): Double = {
     val eq = if (row1.isDense && row2.isDense) {
       row1 match {
-        case r1: ServerIntDoubleRow => r1.getValues.zip(row2.asInstanceOf[ServerIntDoubleRow].getValues)
+        case r1: ServerIntDoubleRow => ServerRowUtils.getVector(r1).getStorage.asInstanceOf[IntDoubleDenseVectorStorage].getValues.zip(ServerRowUtils.getVector(row2).getStorage.asInstanceOf[IntDoubleDenseVectorStorage].getValues)
           .forall { case (a, b) => math.abs(a - b) < equalLimit }
-        case r1: ServerIntFloatRow => r1.getValues.zip(row2.asInstanceOf[ServerIntFloatRow].getValues)
+        case r1: ServerIntFloatRow => ServerRowUtils.getVector(r1).getStorage.asInstanceOf[IntFloatDenseVectorStorage].getValues.zip(ServerRowUtils.getVector(row2).getStorage.asInstanceOf[IntFloatDenseVectorStorage].getValues)
           .forall { case (a, b) => math.abs(a - b) < equalLimit }
-        case r1: ServerIntLongRow => r1.getValues.zip(row2.asInstanceOf[ServerIntLongRow].getValues)
+        case r1: ServerIntLongRow => ServerRowUtils.getVector(r1).getStorage.asInstanceOf[IntLongDenseVectorStorage].getValues.zip(ServerRowUtils.getVector(row2).getStorage.asInstanceOf[IntLongDenseVectorStorage].getValues)
           .forall { case (a, b) => math.abs(a - b) < equalLimit }
-        case r1: ServerIntIntRow => r1.getValues.zip(row2.asInstanceOf[ServerIntIntRow].getValues)
+        case r1: ServerIntIntRow => ServerRowUtils.getVector(r1).getStorage.asInstanceOf[IntIntDenseVectorStorage].getValues.zip(ServerRowUtils.getVector(row2).getStorage.asInstanceOf[IntIntDenseVectorStorage].getValues)
           .forall { case (a, b) => math.abs(a - b) < equalLimit }
         case _ => throw new AngelException("should not come here!")
       }
     } else {
-      row1.getSplit.sub(row2.getSplit).ifilter(equalLimit).sum() == 0
+      ServerRowUtils.getVector(row1).sub(ServerRowUtils.getVector(row2)).ifilter(equalLimit).sum() == 0
     }
     if (eq) equal else notEqual
   }

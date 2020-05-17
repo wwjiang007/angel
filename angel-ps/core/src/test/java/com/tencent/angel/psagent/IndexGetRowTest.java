@@ -29,11 +29,13 @@ import com.tencent.angel.ml.math2.storage.*;
 import com.tencent.angel.ml.math2.vector.*;
 import com.tencent.angel.ml.matrix.MatrixContext;
 import com.tencent.angel.ml.matrix.MatrixMeta;
-import com.tencent.angel.ml.matrix.RowType;
+import com.tencent.angel.ml.math2.utils.RowType;
 import com.tencent.angel.ml.matrix.psf.get.indexed.IndexGet;
 import com.tencent.angel.ml.matrix.psf.get.indexed.IndexGetParam;
 import com.tencent.angel.ml.matrix.psf.get.indexed.LongIndexGet;
 import com.tencent.angel.ml.matrix.psf.get.indexed.LongIndexGetParam;
+import com.tencent.angel.model.MatrixSaveContext;
+import com.tencent.angel.model.ModelSaveContext;
 import com.tencent.angel.ps.PSAttemptId;
 import com.tencent.angel.ps.ParameterServerId;
 import com.tencent.angel.psagent.matrix.MatrixClient;
@@ -103,8 +105,9 @@ public class IndexGetRowTest {
   private WorkerId workerId;
   private WorkerAttemptId workerAttempt0Id;
 
-  int feaNum = 100000;
-  int nnz = 1000;
+  int feaNum = 90000;
+  int nnz = 9000;
+  int modelSize = 90000;
 
   static {
     PropertyConfigurator.configure("../conf/log4j.properties");
@@ -130,6 +133,12 @@ public class IndexGetRowTest {
     conf.setInt(AngelConf.ANGEL_WORKER_TASK_NUMBER, 1);
     conf.setInt(AngelConf.ANGEL_MODEL_PARTITIONER_PARTITION_SIZE, 100000);
 
+    conf.setInt(AngelConf.ANGEL_PSAGENT_CACHE_SYNC_TIMEINTERVAL_MS, 10);
+    conf.setInt(AngelConf.ANGEL_WORKER_HEARTBEAT_INTERVAL_MS, 1000);
+    conf.setInt(AngelConf.ANGEL_PS_HEARTBEAT_INTERVAL_MS, 1000);
+    conf.setInt(AngelConf.ANGEL_WORKER_MAX_ATTEMPTS, 1);
+    conf.setInt(AngelConf.ANGEL_PS_MAX_ATTEMPTS, 1);
+
     // get a angel client
     angelClient = AngelClientFactory.get(conf);
 
@@ -140,16 +149,8 @@ public class IndexGetRowTest {
     dMat.setColNum(feaNum);
     dMat.setMaxColNumInBlock(feaNum / 3);
     dMat.setRowType(RowType.T_DOUBLE_DENSE);
+    dMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dMat);
-
-    // add comp dense double matrix
-    MatrixContext dcMat = new MatrixContext();
-    dcMat.setName(DENSE_DOUBLE_MAT_COMP);
-    dcMat.setRowNum(1);
-    dcMat.setColNum(feaNum);
-    dcMat.setMaxColNumInBlock(feaNum / 3);
-    dcMat.setRowType(RowType.T_DOUBLE_DENSE_COMPONENT);
-    angelClient.addMatrix(dcMat);
 
     // add sparse double matrix
     MatrixContext sMat = new MatrixContext();
@@ -158,7 +159,18 @@ public class IndexGetRowTest {
     sMat.setColNum(feaNum);
     sMat.setMaxColNumInBlock(feaNum / 3);
     sMat.setRowType(RowType.T_DOUBLE_SPARSE);
+    sMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(sMat);
+
+    // add comp dense double matrix
+    MatrixContext dcMat = new MatrixContext();
+    dcMat.setName(DENSE_DOUBLE_MAT_COMP);
+    dcMat.setRowNum(1);
+    dcMat.setColNum(feaNum);
+    dcMat.setMaxColNumInBlock(feaNum / 3);
+    dcMat.setRowType(RowType.T_DOUBLE_DENSE_COMPONENT);
+    dcMat.setValidIndexNum(modelSize);
+    angelClient.addMatrix(dcMat);
 
     // add component sparse double matrix
     MatrixContext sCompMat = new MatrixContext();
@@ -167,6 +179,7 @@ public class IndexGetRowTest {
     sCompMat.setColNum(feaNum);
     sCompMat.setMaxColNumInBlock(feaNum / 3);
     sCompMat.setRowType(RowType.T_DOUBLE_SPARSE_COMPONENT);
+    sCompMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(sCompMat);
 
     // add dense float matrix
@@ -176,6 +189,7 @@ public class IndexGetRowTest {
     dfMat.setColNum(feaNum);
     dfMat.setMaxColNumInBlock(feaNum / 3);
     dfMat.setRowType(RowType.T_FLOAT_DENSE);
+    dfMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dfMat);
 
     // add comp dense float matrix
@@ -185,6 +199,7 @@ public class IndexGetRowTest {
     dcfMat.setColNum(feaNum);
     dcfMat.setMaxColNumInBlock(feaNum / 3);
     dcfMat.setRowType(RowType.T_FLOAT_DENSE_COMPONENT);
+    dcfMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dcfMat);
 
     // add sparse float matrix
@@ -194,6 +209,7 @@ public class IndexGetRowTest {
     sfMat.setColNum(feaNum);
     sfMat.setMaxColNumInBlock(feaNum / 3);
     sfMat.setRowType(RowType.T_FLOAT_SPARSE);
+    sfMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(sfMat);
 
     // add component sparse float matrix
@@ -203,6 +219,7 @@ public class IndexGetRowTest {
     sfCompMat.setColNum(feaNum);
     sfCompMat.setMaxColNumInBlock(feaNum / 3);
     sfCompMat.setRowType(RowType.T_FLOAT_SPARSE_COMPONENT);
+    sfCompMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(sfCompMat);
 
     // add dense float matrix
@@ -212,6 +229,7 @@ public class IndexGetRowTest {
     diMat.setColNum(feaNum);
     diMat.setMaxColNumInBlock(feaNum / 3);
     diMat.setRowType(RowType.T_INT_DENSE);
+    diMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(diMat);
 
     // add comp dense float matrix
@@ -221,6 +239,7 @@ public class IndexGetRowTest {
     dciMat.setColNum(feaNum);
     dciMat.setMaxColNumInBlock(feaNum / 3);
     dciMat.setRowType(RowType.T_INT_DENSE_COMPONENT);
+    dciMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dciMat);
 
     // add sparse float matrix
@@ -230,6 +249,7 @@ public class IndexGetRowTest {
     siMat.setColNum(feaNum);
     siMat.setMaxColNumInBlock(feaNum / 3);
     siMat.setRowType(RowType.T_INT_SPARSE);
+    siMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(siMat);
 
     // add component sparse float matrix
@@ -239,6 +259,7 @@ public class IndexGetRowTest {
     siCompMat.setColNum(feaNum);
     siCompMat.setMaxColNumInBlock(feaNum / 3);
     siCompMat.setRowType(RowType.T_INT_SPARSE_COMPONENT);
+    siCompMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(siCompMat);
 
     // add dense long matrix
@@ -248,6 +269,7 @@ public class IndexGetRowTest {
     dlMat.setColNum(feaNum);
     dlMat.setMaxColNumInBlock(feaNum / 3);
     dlMat.setRowType(RowType.T_LONG_DENSE);
+    dlMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dlMat);
 
     // add comp dense long matrix
@@ -257,6 +279,7 @@ public class IndexGetRowTest {
     dclMat.setColNum(feaNum);
     dclMat.setMaxColNumInBlock(feaNum / 3);
     dclMat.setRowType(RowType.T_LONG_DENSE_COMPONENT);
+    dclMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(dclMat);
 
     // add sparse long matrix
@@ -266,6 +289,7 @@ public class IndexGetRowTest {
     slMat.setColNum(feaNum);
     slMat.setMaxColNumInBlock(feaNum / 3);
     slMat.setRowType(RowType.T_LONG_SPARSE);
+    slMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(slMat);
 
     // add component sparse long matrix
@@ -275,6 +299,7 @@ public class IndexGetRowTest {
     slcMat.setColNum(feaNum);
     slcMat.setMaxColNumInBlock(feaNum / 3);
     slcMat.setRowType(RowType.T_LONG_SPARSE_COMPONENT);
+    slcMat.setValidIndexNum(modelSize);
     angelClient.addMatrix(slcMat);
 
     // add comp dense long double matrix
@@ -284,6 +309,7 @@ public class IndexGetRowTest {
     dldcMatrix.setColNum(feaNum);
     dldcMatrix.setMaxColNumInBlock(feaNum / 3);
     dldcMatrix.setRowType(RowType.T_DOUBLE_DENSE_LONGKEY_COMPONENT);
+    dldcMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dldcMatrix);
 
     // add sparse long-key double matrix
@@ -293,6 +319,7 @@ public class IndexGetRowTest {
     dLongKeysMatrix.setColNum(feaNum);
     dLongKeysMatrix.setMaxColNumInBlock(feaNum / 3);
     dLongKeysMatrix.setRowType(RowType.T_DOUBLE_SPARSE_LONGKEY);
+    dLongKeysMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dLongKeysMatrix);
 
     // add component long-key sparse double matrix
@@ -302,6 +329,7 @@ public class IndexGetRowTest {
     dLongKeysCompMatrix.setColNum(feaNum);
     dLongKeysCompMatrix.setMaxColNumInBlock(feaNum / 3);
     dLongKeysCompMatrix.setRowType(RowType.T_DOUBLE_SPARSE_LONGKEY_COMPONENT);
+    dLongKeysCompMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dLongKeysCompMatrix);
 
     // add component long-key sparse float matrix
@@ -311,6 +339,7 @@ public class IndexGetRowTest {
     dlfcMatrix.setColNum(feaNum);
     dlfcMatrix.setMaxColNumInBlock(feaNum / 3);
     dlfcMatrix.setRowType(RowType.T_FLOAT_DENSE_LONGKEY_COMPONENT);
+    dlfcMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dlfcMatrix);
 
     // add sparse long-key float matrix
@@ -320,6 +349,7 @@ public class IndexGetRowTest {
     slfMatrix.setColNum(feaNum);
     slfMatrix.setMaxColNumInBlock(feaNum / 3);
     slfMatrix.setRowType(RowType.T_FLOAT_SPARSE_LONGKEY);
+    slfMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(slfMatrix);
 
     // add component long-key sparse float matrix
@@ -329,6 +359,7 @@ public class IndexGetRowTest {
     slfcMatrix.setColNum(feaNum);
     slfcMatrix.setMaxColNumInBlock(feaNum / 3);
     slfcMatrix.setRowType(RowType.T_FLOAT_SPARSE_LONGKEY_COMPONENT);
+    slfcMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(slfcMatrix);
 
     // add component long-key sparse int matrix
@@ -338,6 +369,7 @@ public class IndexGetRowTest {
     dlicMatrix.setColNum(feaNum);
     dlicMatrix.setMaxColNumInBlock(feaNum / 3);
     dlicMatrix.setRowType(RowType.T_INT_DENSE_LONGKEY_COMPONENT);
+    dlicMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dlicMatrix);
 
     // add sparse long-key int matrix
@@ -347,6 +379,7 @@ public class IndexGetRowTest {
     sliMatrix.setColNum(feaNum);
     sliMatrix.setMaxColNumInBlock(feaNum / 3);
     sliMatrix.setRowType(RowType.T_INT_SPARSE_LONGKEY);
+    sliMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(sliMatrix);
 
     // add component long-key sparse int matrix
@@ -356,6 +389,7 @@ public class IndexGetRowTest {
     slicMatrix.setColNum(feaNum);
     slicMatrix.setMaxColNumInBlock(feaNum / 3);
     slicMatrix.setRowType(RowType.T_INT_SPARSE_LONGKEY_COMPONENT);
+    slicMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(slicMatrix);
 
     // add component long-key sparse long matrix
@@ -365,6 +399,7 @@ public class IndexGetRowTest {
     dllcMatrix.setColNum(feaNum);
     dllcMatrix.setMaxColNumInBlock(feaNum / 3);
     dllcMatrix.setRowType(RowType.T_LONG_DENSE_LONGKEY_COMPONENT);
+    dllcMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(dllcMatrix);
 
     // add sparse long-key long matrix
@@ -374,6 +409,7 @@ public class IndexGetRowTest {
     sllMatrix.setColNum(feaNum);
     sllMatrix.setMaxColNumInBlock(feaNum / 3);
     sllMatrix.setRowType(RowType.T_LONG_SPARSE_LONGKEY);
+    sllMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(sllMatrix);
 
     // add component long-key sparse long matrix
@@ -383,6 +419,7 @@ public class IndexGetRowTest {
     sllcMatrix.setColNum(feaNum);
     sllcMatrix.setMaxColNumInBlock(feaNum / 3);
     sllcMatrix.setRowType(RowType.T_LONG_SPARSE_LONGKEY_COMPONENT);
+    sllcMatrix.setValidIndexNum(modelSize);
     angelClient.addMatrix(sllcMatrix);
 
     // Start PS
@@ -401,10 +438,10 @@ public class IndexGetRowTest {
   }
 
   @Test public void test() throws Exception {
-    testDenseDoubleUDF();
+    //testDenseDoubleUDF();
     testSparseDoubleUDF();
 
-    testDenseDoubleCompUDF();
+    /*testDenseDoubleCompUDF();
     testSparseDoubleCompUDF();
 
     testDenseFloatUDF();
@@ -435,7 +472,7 @@ public class IndexGetRowTest {
     testSparseIntLongKeyCompUDF();
 
     testSparseLongLongKeyUDF();
-    testSparseLongLongKeyCompUDF();
+    testSparseLongLongKeyCompUDF();*/
   }
 
 
@@ -786,6 +823,13 @@ public class IndexGetRowTest {
     }
 
     Assert.assertTrue(index.length == row.size());
+
+    ModelSaveContext saveContext = new ModelSaveContext();
+    String savePath = LOCAL_FS + TMP_PATH + "/model";
+    saveContext.setSavePath(savePath);
+    MatrixSaveContext matrixContext = new MatrixSaveContext(SPARSE_DOUBLE_MAT);
+    saveContext.addMatrix(matrixContext);
+    angelClient.save(saveContext);
   }
 
   public void testDenseDoubleCompUDF() throws Exception {
@@ -808,13 +852,14 @@ public class IndexGetRowTest {
       deltaVec.set(i, i);
     deltaVec.setRowId(0);
 
-    client1.increment(deltaVec);
+    client1.increment(deltaVec, false);
     client1.clock().get();
 
     IndexGet func = new IndexGet(new IndexGetParam(matrixW1Id, 0, index));
     CompIntDoubleVector row = (CompIntDoubleVector) client1.get(0, index);
     for (int id : index) {
-      Assert.assertTrue(row.get(id) == deltaVec.get(id));
+      //LOG.info("id=" + id + ", value=" + row.get(id));
+      Assert.assertEquals(row.get(id), deltaVec.get(id), 0.0000000001);
     }
     Assert.assertTrue(index.length == row.size());
 
